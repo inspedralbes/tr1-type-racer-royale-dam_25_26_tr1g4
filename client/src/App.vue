@@ -1,11 +1,16 @@
 <template>
-  <v-app>
+  <v-app> 
     <v-main>
-      <router-view />
+      <router-view /> 
     </v-main>
   </v-app>
 </template>
 
 <script setup>
-  //
+// ELIMINA TOTES LES IMPORTACIONS DE VISTES O COMPONENTS GRANS
+// No importis PoseDetector, PoseFeatures, ni LoginView aquí.
 </script>
+
+<style>
+/* Estils globals si n'hi ha */
+</style>
