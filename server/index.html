@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PoC 1: MoveNet</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
+        }
+        #container {
+            position: relative;
+            width: 640px;
+            height: 480px;
+            border: 2px solid #333;
+        }
+        video, canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+        video {
+            transform: scaleX(-1);
+        }
+        h1 {
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+    <h1>MoveNet</h1>
+    <h2 id="estat">Carregant model...</h2>
+    <div id="container">
+        <video id="video" autoplay playsinline></video>
+        <canvas id="canvas"></canvas>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-core@4.10.0/dist/tf-core.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-backend-webgl@4.10.0/dist/tf-backend-webgl.min.js"></script>
+    
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/pose-detection@2.1.3/dist/pose-detection.min.js"></script>
+
+    <script>
+        const video = document.getElementById('video');
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const estatText = document.getElementById('estat');
+
+        let detector; // Aquí guardarem el model MoveNet
+
+        // Índexs dels keypoints de MoveNet (útil per saber què és cada punt)
+        const KeypointIndices = {
+            'nose': 0,
+            'left_eye': 1,
+            'right_eye': 2,
+            'left_ear': 3,
+            'right_ear': 4,
+            'left_shoulder': 5,
+            'right_shoulder': 6,
+            'left_elbow': 7,
+            'right_elbow': 8,
+            'left_wrist': 9,
+            'right_wrist': 10,
+            'left_hip': 11,
+            'right_hip': 12,
+            'left_knee': 13,
+            'right_knee': 14,
+            'left_ankle': 15,
+            'right_ankle': 16
+        };
+
+        let squatState = 'AMUNT'; // Pot ser 'AMUNT' o 'AVALL'
+        let squatCounter = 0;
+
+        async function setupCamera() {
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                throw new Error('El navegador no suporta l\'API de càmera.');
+            }
+
+            const stream = await navigator.mediaDevices.getUserMedia({
+                'audio': false,
+                'video': {
+                    width: 640,
+                    height: 480,
+                },
+            });
+            video.srcObject = stream;
+
+            return new Promise((resolve) => {
+                video.onloadedmetadata = () => {
+                    resolve(video);
+                };
+            });
+        }
+
+        async function loadModel() {
+            // Carreguem el detector de postures. 
+            // 'MoveNet' és el model.
+            // 'Lightning' és la versió més ràpida (menys precisa però suficient).
+            const modelConfig = {
+                modelType: poseDetection.movenet.modelType.SINGLEPOSE_LIGHTNING,
+                enableSmoothing: true
+            };
+            detector = await poseDetection.createDetector(poseDetection.SupportedModels.MoveNet, modelConfig);
+            estatText.innerText = 'Model carregat. Iniciant detecció...';
+        }
+
+        async function detectPoses() {
+            if (!detector) return;
+
+            // 1. Estima la postura del frame de vídeo actual
+            // 'flipHorizontal' és true perquè hem invertit el vídeo CSS
+            const poses = await detector.estimatePoses(video, { flipHorizontal: true });
+
+            // 2. Neteja el canvas abans de dibuixar de nou
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            if (poses.length > 0) {
+                const keypoints = poses[0].keypoints;
+                
+                // 3. Processa la postura per buscar exercicis
+                processSquat(keypoints);
+                
+                // 4. Dibuixa els punts i línies (feedback visual)
+                drawKeypoints(keypoints);
+                drawSkeleton(keypoints);
+            }
+
+            // 5. Torna a executar la funció en el proper frame
+            requestAnimationFrame(detectPoses);
+        }
+
+        function processSquat(keypoints) {
+            // === LÒGICA PER COMPTAR SQUATS ===
+            // Aquí és on has de treballar.
+            // Aquesta funció rep els 17 keypoints amb les seves coordenades (x, y) i 'score' (confiança).
+            
+            // 1. Aconsegueix els punts que necessites per a un squat
+            const leftHip = keypoints[KeypointIndices.left_hip];
+            const rightHip = keypoints[KeypointIndices.right_hip];
+            const leftKnee = keypoints[KeypointIndices.left_knee];
+            const rightKnee = keypoints[KeypointIndices.right_knee];
+            const leftAnkle = keypoints[KeypointIndices.left_ankle];
+            const rightAnkle = keypoints[KeypointIndices.right_ankle];
+
+            // 2. Assegura't que els punts són visibles (score alt)
+            // (Pots afegir aquesta lògica més endavant)
+            // if (leftHip.score < 0.5 || leftKnee.score < 0.5 ...) return;
+
+            // 3. Calcula els angles
+            // Necessitaràs una funció per calcular l'angle entre 3 punts (p. ex., maluc-genoll-turmell)
+            // const angleGenollEsquerre = calcularAngle(leftHip, leftKnee, leftAnkle);
+            // const angleGenollDret = calcularAngle(rightHip, rightKnee, rightAnkle);
+            
+            // 4. Implementa el teu "Maniquí d'Estat"
+            
+            // Lògica de PExemple (molt bàsica, hauràs de refinar-la amb angles):
+            // Comprovem si el genoll està per sota del maluc (en l'eix Y)
+            const midKneeY = (leftKnee.y + rightKnee.y) / 2;
+            const midHipY = (leftHip.y + rightHip.y) / 2;
+
+            if (midKneeY > midHipY + 50) { // +50 és un llindar d'exemple
+                // Si estem 'AVALL' i prèviament estàvem 'AMUNT'
+                if (squatState === 'AMUNT') {
+                    squatState = 'AVALL';
+                }
+            } else {
+                // Si estem 'AMUNT' i prèviament estàvem 'AVALL'
+                if (squatState === 'AVALL') {
+                    squatState = 'AMUNT';
+                    // === HEM COMPLETAT UNA REPETICIÓ! ===
+                    squatCounter++;
+                    estatText.innerText = `REPETICIONS: ${squatCounter}`;
+                    console.log("REPETICIÓ COMPTADA!", squatCounter);
+                }
+            }
+        }
+
+        // Funció auxiliar per calcular l'angle (hauràs de crear-la)
+        /*
+        function calcularAngle(p1, p2, p3) {
+            // Implementar lògica d'angle amb atan2
+            // ...
+        }
+        */
+
+        // --- Funcions auxiliars per dibuixar ---
+
+        function drawKeypoints(keypoints) {
+            ctx.fillStyle = 'Red';
+            ctx.strokeStyle = 'Red';
+            ctx.lineWidth = 2;
+
+            for (const keypoint of keypoints) {
+                if (keypoint.score > 0.3) { // Dibuixa només si hi ha prou confiança
+                    ctx.beginPath();
+                    ctx.arc(keypoint.x, keypoint.y, 5, 0, 2 * Math.PI);
+                    ctx.fill();
+                }
+            }
+        }
+
+        function drawSkeleton(keypoints) {
+            ctx.fillStyle = 'White';
+            ctx.strokeStyle = 'White';
+            ctx.lineWidth = 2;
+
+            // Llista de connexions per dibuixar l'esquelet
+            const connections = [
+                // Tors
+                [KeypointIndices.left_shoulder, KeypointIndices.right_shoulder],
+                [KeypointIndices.left_shoulder, KeypointIndices.left_hip],
+                [KeypointIndices.right_shoulder, KeypointIndices.right_hip],
+                [KeypointIndices.left_hip, KeypointIndices.right_hip],
+                // Braç esquerre
+                [KeypointIndices.left_shoulder, KeypointIndices.left_elbow],
+                [KeypointIndices.left_elbow, KeypointIndices.left_wrist],
+                // Braç dret
+                [KeypointIndices.right_shoulder, KeypointIndices.right_elbow],
+                [KeypointIndices.right_elbow, KeypointIndices.right_wrist],
+                // Cama esquerra
+                [KeypointIndices.left_hip, KeypointIndices.left_knee],
+                [KeypointIndices.left_knee, KeypointIndices.left_ankle],
+                // Cama dreta
+                [KeypointIndices.right_hip, KeypointIndices.right_knee],
+                [KeypointIndices.right_knee, KeypointIndices.right_ankle]
+            ];
+
+            for (const [startIdx, endIdx] of connections) {
+                const p1 = keypoints[startIdx];
+                const p2 = keypoints[endIdx];
+                if (p1.score > 0.3 && p2.score > 0.3) {
+                    ctx.beginPath();
+                    ctx.moveTo(p1.x, p1.y);
+                    ctx.lineTo(p2.x, p2.y);
+                    ctx.stroke();
+                }
+            }
+        }
+
+        // --- Funció principal per iniciar tot ---
+        async function main() {
+            estatText.innerText = 'Iniciant càmera...';
+            await setupCamera();
+            video.play();
+            
+            // Ajustem la mida del canvas al vídeo
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            
+            estatText.innerText = 'Carregant model MoveNet...';
+            await loadModel();
+            
+            detectPoses();
+        }
+
+        main();
+    </script>
+</body>
+</html>
