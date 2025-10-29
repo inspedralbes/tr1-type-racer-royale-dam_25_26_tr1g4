@@ -1,0 +1,55 @@
+# === Dependències ===
+# Ignora tots els mòduls de Node descarregats.
+# Aquest és el directori més important a ignorar.
+/node_modules/
+
+
+# === Fitxers de Producció (Build) ===
+# Ignora els fitxers generats en compilar el projecte.
+/dist/
+/dist-ssr/
+/build/
+/.output/
+
+
+# === Variables d'Entorn (MOLT IMPORTANT) ===
+# No pugis mai els teus secrets, claus d'API o contrasenyes a un repositori.
+# Qualsevol fitxer .env ha de ser ignorat.
+.env
+.env.local
+.env.*.local
+
+
+# === Eines de Desenvolupament i Cache ===
+# Fitxers de cache generats per eines com Vite, Nuxt, etc.
+/.vite/
+/.cache/
+/.nuxt/
+
+
+# === Logs ===
+# Ignora els fitxers de registre (logs)
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+
+# === Informes de Tests ===
+# Ignora els informes de cobertura de tests
+/coverage/
+
+
+# === Configuració d'Editors i IDEs ===
+# Ignora els fitxers de configuració específica del teu editor de codi
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+
+# === Fitxers del Sistema Operatiu ===
+# Fitxers brossa de macOS i Windows
+.DS_Store
+Thumbs.db
