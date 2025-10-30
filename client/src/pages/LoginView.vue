@@ -1,36 +1,101 @@
 <script setup>
-import { ref } from 'vue';
-import { useRouter } from 'vue-router';
+import { ref } from "vue";
+import { useRouter } from "vue-router";
 
-// Necessitem el router per navegar programàticament a la Sala
-const router = useRouter(); 
+const router = useRouter();
 
-const email = ref('');
-const password = ref('');
-const loading = ref(false); // Per simular el procés de login
+// Variables d'estat
+const email = ref("");
+const password = ref("");
+const username = ref("");
+const isRegistering = ref(false);
+const loading = ref(false);
+const errorMessage = ref("");
 
-// Funció que es crida al fer clic a "Entrar"
-function handleLogin() {
+// URL Base del teu backend (ajusta el port si cal)
+const API_BASE_URL = "http://localhost:8000/api/users";
+
+async function handleFetch(endpoint, data) {
+  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(data),
+  });
+  const responseData = await response.json();
+  if (!response.ok) {
+    const errorMsg =
+      responseData.message ||
+      `Error del servidor amb l'estat ${response.status}`;
+    throw new Error(errorMsg);
+  }
+
+  return responseData;
+}
+
+async function handleLogin() {
+  errorMessage.value = "";
   loading.value = true;
-  
-  // 💡 SIMULACIÓ DEL LOGIN:
-  // En lloc de fer una crida a l'API, simulem que l'usuari s'autentica
-  // i l'enviem directament a la Sala.
-  
-  setTimeout(() => {
+
+  try {
+    const dataToSend = {
+      email: email.value,
+      password: password.value,
+    };
+
+    const data = await handleFetch("/login", dataToSend);
+
+    // 1. Desem el token i dades de l'usuari
+    const { token, username: userFromApi } = data;
+    localStorage.setItem("fithub-token", token);
+    console.log(`Benvingut, ${userFromApi}!`);
+
+    // 2. Navegació
+    const salaId = "SALA_DEMO_FIT2024";
+    router.push({ name: "sala", params: { id: salaId } });
+  } catch (error) {
+    // 3. Gestió d'errors (el missatge ja ve del 'throw new Error' de handleFetch)
+    errorMessage.value = error.message || "Error de connexió a la xarxa.";
+  } finally {
     loading.value = false;
-    
-    // 1. Definim un ID de Sala de prova (p. ex., un UUID o qualsevol string)
-    const salaId = '1'; 
-    
-    // 2. Navegació a la ruta '/sala/:id'
-    // Això comprova que el router estigui ben configurat i carrega PoseDetector.vue
-    router.push({ 
-      name: 'sala', 
-      params: { id: salaId } 
-    });
-    
-  }, 1500); // Esperem 1.5 segons
+  }
+}
+
+async function handleRegister() {
+  errorMessage.value = "";
+  loading.value = true;
+
+  try {
+    const dataToSend = {
+      username: username.value,
+      email: email.value,
+      password: password.value,
+    };
+
+    const data = await handleFetch("/register", dataToSend);
+
+    // Després de registrar-se, l'usuari rep el token i se l'envia directament a la Sala
+    const { token, username: userFromApi } = data;
+    localStorage.setItem("fithub-token", token);
+    console.log(`Registre completat. Benvingut, ${userFromApi}!`);
+
+    const salaId = "1";
+    router.push({ name: "sala", params: { id: salaId } });
+  } catch (error) {
+    // Gestió d'errors
+    errorMessage.value = error.message || "Error de connexió a la xarxa.";
+  } finally {
+    loading.value = false;
+  }
+}
+
+function handleSubmit() {
+  if (isRegistering.value) {
+    handleRegister();
+  } else {
+    handleLogin();
+  }
 }
 </script>
 
@@ -40,11 +105,25 @@ function handleLogin() {
       <v-col cols="12" sm="8" md="4">
         <v-card class="elevation-12 pa-4">
           <v-card-title class="text-h5 text-center mb-4">
-            FitHub - Accés 
-          </v-card-title>
-          
+            FitHub - {{ isRegistering ? "Registre" : "Accés" }}
+          </v-card-title>s un error de "Cannot connect" o "Conexió rebutjada", el 
+
           <v-card-text>
-            <v-form @submit.prevent="handleLogin">
+            <v-alert v-if="errorMessage" type="error" class="mb-4">
+              {{ errorMessage }}
+            </v-alert>
+
+            <v-form @submit.prevent="handleSubmit">
+              <v-text-field
+                v-if="isRegistering"
+                v-model="username"
+                label="Nom d'Usuari"
+                prepend-icon="mdi-badge-account"
+                type="text"
+                required
+                :disabled="loading"
+              ></v-text-field>
+
               <v-text-field
                 v-model="email"
                 label="Correu Electrònic"
@@ -72,14 +151,23 @@ function handleLogin() {
                 :loading="loading"
                 :disabled="loading"
               >
-                Entrar a la Sala (Prova)
+                {{ isRegistering ? "Registrar-se" : "Entrar" }}
               </v-btn>
             </v-form>
           </v-card-text>
-          
+
           <v-card-actions class="justify-center">
-            <v-btn variant="text" size="small" :disabled="loading">
-              Registrar-se
+            <v-btn
+              variant="text"
+              size="small"
+              :disabled="loading"
+              @click="isRegistering = !isRegistering"
+            >
+              {{
+                isRegistering
+                  ? "Ja tens compte? Fes Login"
+                  : "No tens compte? Registra’t"
+              }}
             </v-btn>
           </v-card-actions>
         </v-card>

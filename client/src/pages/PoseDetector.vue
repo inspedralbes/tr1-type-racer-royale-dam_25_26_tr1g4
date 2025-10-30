@@ -1,28 +1,13 @@
 <script setup>
-/*
-  Objectiu:
-  - Obrir la webcam i mostrar-ne el vídeo.
-  - Carregar MoveNet (Lightning) i estimar la posició del cos.
-  - Dibuixar punts i línies (esquelet) en un canvas a sobre del vídeo.
-  - **NOU:** Passar els keypoints detectats al component PoseFeatures.vue.
-*/
-
 import { ref, onMounted, onBeforeUnmount } from "vue";
-
-// ERROR CORREGIT 1: PoseFeatures ha de ser importat des del seu camí real.
-// Si aquest component és una pàgina, PoseFeatures serà un 'component'.
 import PoseFeatures from '@/components/PoseFeatures.vue'; 
-
-// TensorFlow.js + backend WebGL per acceleració al navegador
 import * as tf from "@tensorflow/tfjs-core";
 import "@tensorflow/tfjs-backend-webgl";
-// Model de pose (MoveNet) via el paquet "pose-detection"
 import * as poseDetection from "@tensorflow-models/pose-detection";
 
 
 const videoRef = ref(null);
 const canvasRef = ref(null);
-// NOU: Variable per guardar els keypoints i passar-los a PoseFeatures
 const detectedKeypoints = ref([]); 
 
 let currentStream = null; 
