@@ -2,7 +2,7 @@
  * plugins/vuetify.js
  *
  * Framework documentation: https://vuetifyjs.com`
- */
+
 
 // Styles
 import '@mdi/font/css/materialdesignicons.css'
@@ -17,3 +17,21 @@ export default createVuetify({
     defaultTheme: 'system',
   },
 })
+
+ */
+// src/plugins/vuetify.js
+import 'vuetify/styles';
+import { createVuetify } from 'vuetify';
+import { aliases, mdi } from 'vuetify/iconsets/mdi';
+
+// (Optional) include Material Design Icons
+import '@mdi/font/css/materialdesignicons.css';
+
+export default createVuetify({
+  icons: {
+    defaultSet: 'mdi',
+    aliases,
+    sets: { mdi },
+  },
+});
+
