@@ -1,42 +1,59 @@
-// index.js (o server.js)
 
 const express = require('express');
-const mongoose = require('mongoose');
-const cors = require('cors'); 
-const userRoutes = require('./routes/userRoutes'); 
+const cors = require('cors');
+
+const sequelize = require('./config/database');
+
+const User = require('./models/user');
+const Sessio = require('./models/sessio');
+const Performance = require('./models/performance');
+
+const userRoutes = require('./routes/userRoutes');
 
 const app = express();
 
 const corsOptions = {
-    origin: '*', 
+    origin: '*',
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'Accept'], // Afegim 'Accept' per a més compatibilitat
+    allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
 };
-
 app.use(cors(corsOptions));
 
-// === 2. Middlewares de Dades (Després de CORS) ===
-// Permet a Express parsejar peticions amb format application/json
-app.use(express.json()); 
+app.use(express.json());
 
+User.hasMany(Sessio, { foreignKey: 'host_user_id', as: 'hostedSessions' });
+Sessio.belongsTo(User, { foreignKey: 'host_user_id', as: 'host' });
 
-// === 3. Connexió a MongoDB ===
-// AVÍS: En una aplicació real, aquestes dades haurien d'estar en un fitxer .env
-const DB_URI = 'mongodb+srv://admin:1234@login.fcehoew.mongodb.net/?appName=login';
-const JWT_SECRET = 'dggsgsgsgsg'; 
+User.hasMany(Performance, { foreignKey: 'user_id' });
+Performance.belongsTo(User, { foreignKey: 'user_id' });
 
-mongoose.connect(DB_URI)
-  .then(() => console.log('✅ Connectat a MongoDB Atlas'))
-  .catch(err => console.error('❌ Error de connexió a MongoDB:', err));
+Sessio.hasMany(Performance, { foreignKey: 'sessio_id' });
+Performance.belongsTo(Sessio, { foreignKey: 'sessio_id' });
 
+async function startServer() { 
+  try {
+    await sequelize.authenticate();
+    console.log('✅ Connectat a MySQL (amb Sequelize)');
 
-// === 4. Rutes d'API (ÚLTIMES) ===
-// Totes les rutes de l'usuari estaran disponibles a /api/users
-app.use('/api/users', userRoutes); 
+    await sequelize.sync({ alter: true });
+    console.log('🔄 Models sincronitzats amb la BBDD');
 
+    const PORT =  7001;
+    const server = app.listen(PORT, () => {
+      console.log(`🚀 Servidor Express escoltant al port http://localhost:${PORT}`);
+    });
 
-// === 5. Inici del Servidor ===
-const PORT = 8000;
-app.listen(PORT, () => {
-  console.log(`🚀 Servidor Express escoltant al port http://localhost:${PORT}`);
-});
+    server.on('error', (err) => {
+      console.error('❌ Error de servidor:', err);
+      process.exit(1);
+    });
+
+  } catch (err) {
+    console.error('❌ Error de connexió a MySQL:', err);
+    process.exit(1);
+  }
+}
+
+app.use('/api/users', userRoutes);
+
+startServer();
