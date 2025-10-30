@@ -17,5 +17,6 @@ declare module 'vue' {
     PoseFeatures: typeof import('./src/components/PoseFeatures.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
+    TrainingRoom: typeof import('./src/components/TrainingRoom.vue')['default']
   }
 }

@@ -20,6 +20,7 @@ import "@tensorflow/tfjs-backend-webgl";
 import * as poseDetection from "@tensorflow-models/pose-detection";
 
 
+
 const videoRef = ref(null);
 const canvasRef = ref(null);
 // NOU: Variable per guardar els keypoints i passar-los a PoseFeatures

@@ -1,6 +1,8 @@
+
 <script setup>
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
+
 
 // Necessitem el router per navegar programàticament a la Sala
 const router = useRouter(); 
@@ -35,6 +37,7 @@ function handleLogin() {
 </script>
 
 <template>
+  <Suspense>
   <v-container class="fill-height" fluid>
     <v-row align="center" justify="center">
       <v-col cols="12" sm="8" md="4">
@@ -86,4 +89,5 @@ function handleLogin() {
       </v-col>
     </v-row>
   </v-container>
+</Suspense>
 </template>
