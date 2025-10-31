@@ -1,42 +1,36 @@
-// index.js (o server.js)
-
 const express = require('express');
-const mongoose = require('mongoose');
-const cors = require('cors'); 
-const userRoutes = require('./routes/userRoutes'); 
+const cors = require('cors');
+require('dotenv').config();
+
+const pool = require('./db'); 
+const userRoutes = require('./routes/userRoutes');
+const { initGameSocket } = require('./ws/gameSocket'); 
 
 const app = express();
 
 const corsOptions = {
-    origin: '*', 
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'Accept'], // Afegim 'Accept' per a més compatibilitat
+  origin: '*',
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
 };
-
 app.use(cors(corsOptions));
+app.use(express.json());
 
-// === 2. Middlewares de Dades (Després de CORS) ===
-// Permet a Express parsejar peticions amb format application/json
-app.use(express.json()); 
+app.use('/api/users', userRoutes);
 
+(async () => {
+  try {
+    const con = await pool.getConnection();
+    console.log('Connectat correctament a MySQL');
+    con.release();
+  } catch (err) {
+    console.error(' Error connectant a la base de dades:', err.message);
+  }
+})();
 
-// === 3. Connexió a MongoDB ===
-// AVÍS: En una aplicació real, aquestes dades haurien d'estar en un fitxer .env
-const DB_URI = 'mongodb+srv://admin:1234@login.fcehoew.mongodb.net/?appName=login';
-const JWT_SECRET = 'dggsgsgsgsg'; 
-
-mongoose.connect(DB_URI)
-  .then(() => console.log('✅ Connectat a MongoDB Atlas'))
-  .catch(err => console.error('❌ Error de connexió a MongoDB:', err));
-
-
-// === 4. Rutes d'API (ÚLTIMES) ===
-// Totes les rutes de l'usuari estaran disponibles a /api/users
-app.use('/api/users', userRoutes); 
-
-
-// === 5. Inici del Servidor ===
-const PORT = 8000;
-app.listen(PORT, () => {
-  console.log(`🚀 Servidor Express escoltant al port http://localhost:${PORT}`);
+const PORT = process.env.PORT || 8000;
+const server = app.listen(PORT, () => {
+  console.log(`Servidor escoltant a http://localhost:${PORT}`);
 });
+
+initGameSocket(server);
