@@ -49,11 +49,12 @@ async function handleLogin() {
     // 1. Desem el token i dades de l'usuari
     const { token, username: userFromApi } = data;
     localStorage.setItem("fithub-token", token);
+    localStorage.setItem("username", userFromApi); // <-- AFEGIT: Guardem el nom d'usuari
     console.log(`Benvingut, ${userFromApi}!`);
 
     // 2. Navegació
     const salaId = "SALA_DEMO_FIT2024";
-    router.push({ name: "sala", params: { id: salaId } });
+    router.push({ name: "lobby" });
   } catch (error) {
     // 3. Gestió d'errors (el missatge ja ve del 'throw new Error' de handleFetch)
     errorMessage.value = error.message || "Error de connexió a la xarxa.";
@@ -75,13 +76,12 @@ async function handleRegister() {
 
     const data = await handleFetch("/register", dataToSend);
 
-    // Després de registrar-se, l'usuari rep el token i se l'envia directament a la Sala
-    const { token, username: userFromApi } = data;
-    localStorage.setItem("fithub-token", token);
-    console.log(`Registre completat. Benvingut, ${userFromApi}!`);
+    // Registre completat. Mostrem un missatge i canviem a la vista de login.
+    console.log(`Registre completat per a l'usuari: ${username.value}`);
 
-    const salaId = "1";
-    router.push({ name: "sala", params: { id: salaId } });
+    // Canviem al formulari de login
+    isRegistering.value = false;
+    // Opcional: Podries afegir un missatge de 'success' per a l'usuari.
   } catch (error) {
     // Gestió d'errors
     errorMessage.value = error.message || "Error de connexió a la xarxa.";
