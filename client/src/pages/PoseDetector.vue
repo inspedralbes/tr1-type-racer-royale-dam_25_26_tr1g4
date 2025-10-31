@@ -1,37 +1,122 @@
 <script setup>
 import { ref, onMounted, onBeforeUnmount } from "vue";
-import PoseFeatures from '@/components/PoseFeatures.vue'; 
 import * as tf from "@tensorflow/tfjs-core";
 import "@tensorflow/tfjs-backend-webgl";
 import * as poseDetection from "@tensorflow-models/pose-detection";
 
-
 const videoRef = ref(null);
 const canvasRef = ref(null);
-const detectedKeypoints = ref([]); 
 
-let currentStream = null; 
-let detector = null; 
-let rafId = null; 
+const repCounter = ref(0); // Contador de repeticiones
+const exerciseState = ref("up"); // Estado actual del ejercicio ('up' o 'down')
+const feedbackMsg = ref("¡Prepárate!"); // Feedback en tiempo real
+
+let currentStream = null; // guardem l'stream actiu per poder-lo aturar
+let detector = null; // detector MoveNet
+let rafId = null; // id de requestAnimationFrame del bucle
+
+const keypointNames = [
+  "nose",
+  "left_eye",
+  "right_eye",
+  "left_ear",
+  "right_ear",
+  "left_shoulder",
+  "right_shoulder",
+  "left_elbow",
+  "right_elbow",
+  "left_wrist",
+  "right_wrist",
+  "left_hip",
+  "right_hip",
+  "left_knee",
+  "right_knee",
+  "left_ankle",
+  "right_ankle",
+];
+
+// Funció auxiliar per obtenir un keypoint pel seu nom
+function getKp(keypoints, name) {
+  const index = keypointNames.indexOf(name);
+  if (index === -1 || !keypoints || keypoints.length <= index) return null;
+
+  const kp = keypoints[index];
+  if (kp && (kp.score ?? 1) > 0.3) {
+    return kp;
+  }
+  return null;
+}
+
+//NOU: Calcula el ángulo (en grados) formado por tres puntos (articulaciones).
+function calcularAngulo(a, b, c) {
+  if (!a || !b || !c) return null;
+  const rad =
+    Math.atan2(c.y - b.y, c.x - b.x) - Math.atan2(a.y - b.y, a.x - b.x);
+  let angulo = Math.abs((rad * 180.0) / Math.PI);
+  if (angulo > 180) {
+    angulo = 360 - angulo;
+  }
+  return angulo;
+}
+
+//NOU: Función principal que analiza los keypoints para contar sentadillas y dar feedback.
+function analizarSentadilla(keypoints) {
+  const shoulder = getKp(keypoints, "left_shoulder");
+  const hip = getKp(keypoints, "left_hip");
+  const knee = getKp(keypoints, "left_knee");
+  const ankle = getKp(keypoints, "left_ankle");
+
+  if (!shoulder || !hip || !knee || !ankle) {
+    feedbackMsg.value = "No te veo bien";
+    return;
+  }
+
+  const anguloRodilla = calcularAngulo(hip, knee, ankle);
+  const anguloEspalda = calcularAngulo(shoulder, hip, knee);
+
+  if (anguloRodilla === null || anguloEspalda === null) return;
+
+  const UMBRAL_ARRIBA = 160;
+  const UMBRAL_ABAJO = 100;
+  const UMBRAL_ESPALDA = 150;
+
+  // LÓGICA DE FEEDBACK
+  if (exerciseState.value === "down" && anguloEspalda < UMBRAL_ESPALDA) {
+    feedbackMsg.value = "¡Espalda recta!";
+  } else if (exerciseState.value === "down") {
+    feedbackMsg.value = "¡Sube!";
+  } else if (exerciseState.value === "up" && anguloRodilla > UMBRAL_ARRIBA) {
+    feedbackMsg.value = "Baja...";
+  }
+
+  // LÓGICA de ESTADO (CONTADOR)
+  if (anguloRodilla < UMBRAL_ABAJO && exerciseState.value === "up") {
+    exerciseState.value = "down";
+  }
+
+  if (anguloRodilla > UMBRAL_ARRIBA && exerciseState.value === "down") {
+    exerciseState.value = "up";
+    repCounter.value++;
+    feedbackMsg.value = "¡Bien!";
+  }
+}
 
 // 1) Obrir la càmera
-// ... (La funció startCamera() es manté sense canvis)
 async function startCamera() {
   try {
     if (currentStream) {
       currentStream.getTracks().forEach((t) => t.stop());
       currentStream = null;
     }
-
+    // Demanem 16:9, com a la conversa anterior
     const stream = await navigator.mediaDevices.getUserMedia({
       video: {
         facingMode: "user",
-        width: { ideal: 640 },
-        height: { ideal: 480 },
+        width: { ideal: 1280 },
+        height: { ideal: 720 },
       },
       audio: false,
     });
-
     currentStream = stream;
     if (videoRef.value) {
       videoRef.value.srcObject = stream;
@@ -39,22 +124,20 @@ async function startCamera() {
     }
   } catch (err) {
     console.error("No s’ha pogut accedir a la càmera:", err);
-    alert(
-      "No s’ha pogut accedir a la càmera. Revisa permisos i que hi hagi una webcam disponible."
-    );
+    alert("No s’ha pogut accedir a la càmera.");
   }
 }
 
 // 2) Dibuixar esquelet (punts + línies) al canvas
-// ... (La funció drawSkeleton() es manté sense canvis)
 function drawSkeleton(ctx, keypoints) {
   ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-
   const pairs = poseDetection.util.getAdjacentPairs(
     poseDetection.SupportedModels.MoveNet
   );
-  ctx.lineWidth = 2;
-  ctx.strokeStyle = "#ffffff";
+  ctx.lineWidth = 3;
+  ctx.strokeStyle = "#00c8ff";
+
+  // Dibuixem línies
   for (const [i, j] of pairs) {
     const a = keypoints[i],
       b = keypoints[j];
@@ -66,11 +149,12 @@ function drawSkeleton(ctx, keypoints) {
     ctx.stroke();
   }
 
-  ctx.fillStyle = "#ffffff";
+  // Dibuixem punts
+  ctx.fillStyle = "#ffffff"; // Punts blancs
   for (const kp of keypoints) {
     if ((kp.score ?? 1) < 0.3) continue;
     ctx.beginPath();
-    ctx.arc(kp.x, kp.y, 3.5, 0, Math.PI * 2);
+    ctx.arc(kp.x, kp.y, 4, 0, Math.PI * 2);
     ctx.fill();
   }
 }
@@ -79,11 +163,10 @@ function drawSkeleton(ctx, keypoints) {
 async function loop() {
   const video = videoRef.value;
   const canvas = canvasRef.value;
-  if (!video || !canvas || !detector || video.readyState !== 4) { // ERROR CORREGIT 2: Comprovar readyState
-    rafId = requestAnimationFrame(loop);
-    return;
-  }
+  if (!video || !canvas || !detector) return;
 
+  // Aquesta lògica és clau: ajusta la RESOLUCIÓ del canvas
+  // a la resolució REAL del vídeo. El CSS s'encarrega d'ESCALAR-HO.
   if (
     canvas.width !== video.videoWidth ||
     canvas.height !== video.videoHeight
@@ -94,17 +177,17 @@ async function loop() {
 
   const poses = await detector.estimatePoses(video, {
     maxPoses: 1,
-    flipHorizontal: true, 
+    flipHorizontal: true,
   });
 
   const ctx = canvas.getContext("2d");
   if (poses[0]?.keypoints) {
-    // CLAU: Actualitzar el ref per passar-lo a PoseFeatures
-    detectedKeypoints.value = poses[0].keypoints; 
-    drawSkeleton(ctx, poses[0].keypoints);
+    const kps = poses[0].keypoints;
+    drawSkeleton(ctx, kps);
+    analizarSentadilla(kps);
   } else {
-    detectedKeypoints.value = [];
     ctx.clearRect(0, 0, canvas.width, canvas.height);
+    feedbackMsg.value = "Buscando persona...";
   }
 
   rafId = requestAnimationFrame(loop);
@@ -113,10 +196,8 @@ async function loop() {
 // 4) Inicialització i neteja
 onMounted(async () => {
   await tf.setBackend("webgl");
-  // ERROR CORREGIT 3 (MÉS SIMPLE): no cal cridar tf.ready() abans, ja es fa internament
-  
+  await tf.ready();
   await startCamera();
-
   detector = await poseDetection.createDetector(
     poseDetection.SupportedModels.MoveNet,
     {
@@ -124,7 +205,6 @@ onMounted(async () => {
       enableSmoothing: true,
     }
   );
-
   loop();
 });
 
@@ -132,58 +212,128 @@ onBeforeUnmount(() => {
   if (rafId) cancelAnimationFrame(rafId);
   if (currentStream) currentStream.getTracks().forEach((t) => t.stop());
   detector = null;
-  // Neteja l'estat en desmuntar
-  detectedKeypoints.value = [];
 });
 </script>
 
 <template>
-  <v-container fluid class="fill-height">
-    <v-row no-gutters>
-      <v-col cols="12" md="9">
-        <div class="wrap">
-          <div class="stage">
-            <video ref="videoRef" playsinline muted autoplay class="video"></video>
-            <canvas ref="canvasRef" class="overlay"></canvas>
-          </div>
-        </div>
-      </v-col>
+  <div class="main-container">
+    <video
+      ref="videoRef"
+      playsinline
+      muted
+      autoplay
+      class="video-background"
+    ></video>
+    <canvas ref="canvasRef" class="canvas-overlay"></canvas>
 
-      <v-col cols="12" md="3">
-        <PoseFeatures :keypoints="detectedKeypoints" />
-      </v-col>
-    </v-row>
-  </v-container>
+    <div class="ui-panel">
+      <h3 class="title">Full Body Squat</h3>
+
+      <div class="counter-box">
+        <div class="counter-value">{{ repCounter }}</div>
+        <div class="counter-label">Repeticiones</div>
+      </div>
+
+      <div class="feedback-box">
+        <div class="feedback-message">{{ feedbackMsg }}</div>
+      </div>
+    </div>
+  </div>
 </template>
 
 <style scoped>
-/*
-  He mantingut la majoria dels teus estils, però he afegit contenidors de Vuetify
-  (v-container, v-row, v-col) a la plantilla per tenir un layout responsive.
-*/
-.wrap {
-  /* Envolcall del vídeo en una sola columna */
-  display: flex; 
+.main-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: #111;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica,
+    Arial, sans-serif;
+}
+
+.video-background,
+.canvas-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.video-background {
+  z-index: 0;
+}
+
+.canvas-overlay {
+  z-index: 1;
+}
+
+.ui-panel {
+  position: absolute;
+  top: 0;
+  right: 0;
+  height: 100%;
+  width: 280px;
+  background: rgba(30, 30, 30, 0.85);
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 24px;
+  box-sizing: border-box;
+  gap: 30px;
+  color: white;
+}
+
+.title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  text-align: center;
+  margin: 0;
+  color: #f5f5f5;
+}
+
+.counter-box {
+  width: 170px;
+  height: 170px;
+  border-radius: 50%;
+  border: 9px solid #00c8ff;
+  display: flex;
+  flex-direction: column;
   justify-content: center;
   align-items: center;
-  height: 100%;
-  padding: 15px; /* Petit padding per no enganxar a les vores */
+  background: rgba(0, 0, 0, 0.3);
 }
-.stage {
-  position: relative;
-  width: 100%;
-  max-width: 640px; /* Limitem la mida per a pantalles grans */
-  aspect-ratio: 4 / 3;
-  background: #000;
-  border-radius: 12px;
-  overflow: hidden;
+
+.counter-value {
+  font-size: 5.5rem;
+  font-weight: 700;
+  line-height: 1;
 }
-.video,
-.overlay {
-  position: absolute;
-  inset: 0;
+
+.counter-label {
+  font-size: 1rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #ccc;
+  margin-top: 5px;
+}
+
+.feedback-box {
   width: 100%;
-  height: 100%;
-  object-fit: contain; 
+  background: rgba(0, 0, 0, 0.3);
+  padding: 16px;
+  border-radius: 8px;
+  text-align: center;
+}
+
+.feedback-message {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #ffc107;
+  min-height: 1.5em;
 }
 </style>

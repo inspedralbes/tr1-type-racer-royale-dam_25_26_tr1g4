@@ -1,7 +1,7 @@
 <template>
-  <v-app> 
+  <v-app>
     <v-main>
-      <router-view /> 
+      <router-view />
     </v-main>
   </v-app>
 </template>
@@ -11,6 +11,4 @@
 // No importis PoseDetector, PoseFeatures, ni LoginView aquí.
 </script>
 
-<style>
-/* Estils globals si n'hi ha */
-</style>
+<style></style>

@@ -1,4 +1,4 @@
-version: '3.8'
+version: "3.8"
 
 services:
   db_mysql:
@@ -6,8 +6,8 @@ services:
     container_name: meu_mysql_db
     restart: always
     environment:
-      MYSQL_ROOT_PASSWORD: '1234'
-      MYSQL_DATABASE: 'projBD'
+      MYSQL_ROOT_PASSWORD: "1234"
+      MYSQL_DATABASE: "projBD"
     ports:
       - "3306:3306"
     volumes:
@@ -19,15 +19,13 @@ services:
     container_name: meu_phpmyadmin
     restart: always
     ports:
-      - "8080:80" 
+      - "8080:80"
     environment:
-      PMA_HOST: db_mysql 
+      PMA_HOST: db_mysql
       PMA_PORT: 3306
-      MYSQL_ROOT_PASSWORD: '1234' 
+      MYSQL_ROOT_PASSWORD: "1234"
     depends_on:
-      - db_mysql 
+      - db_mysql
 
 volumes:
   mysql-data:
-
-
