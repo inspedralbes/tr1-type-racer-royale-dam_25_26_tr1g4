@@ -151,16 +151,6 @@ El flux d'usuari dissenyat és el següent:
 
         Presenta un "Leaderboard" amb els resultats, temps i el "Millor Temps".
 
-
-💡 Punts Clau del Disseny
-
-
-    Màquina d'Estats: La gestió de la sessió (Lobby -> En curs -> Finalitzat) es concep com una màquina d'estats.
-
-
-    Format de Dades: La comunicació entre client i servidor es realitza mitjançant objectes JSON, definint estructures clares per a Participant, Event i Exercici.
-
-
 ## Diagramas
 
 
