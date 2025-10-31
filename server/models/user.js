@@ -1,62 +1,27 @@
-const { DataTypes } = require('sequelize');
-const sequelize = require('../config/database');
+const db = require('../config/database');
 const bcrypt = require('bcryptjs');
 
-const User = sequelize.define('User', {
-  username: {
-    type: DataTypes.STRING,
-    allowNull: false,
-    unique: true,
-  },
-  password: {
-    type: DataTypes.STRING,
-    allowNull: false,
-  },
-  email: {
-    type: DataTypes.STRING,
-    allowNull: false,
-    unique: true,
-    validate: {
-      isEmail: true, 
-    }
-  },
-  wins: {
-    type: DataTypes.INTEGER,
-    allowNull: false,
-    defaultValue: 0,
-  },
-  looses: {
-    type: DataTypes.INTEGER,
-    allowNull: false,
-    defaultValue: 0,
-  },
-  score: { 
-    type: DataTypes.BIGINT, 
-    allowNull: false,
-    defaultValue: 0,
-  },
-  best_score: { 
-    type: DataTypes.DECIMAL(10, 2),
-    allowNull: false,
-    defaultValue: 0.00,
+class User {
+  static async create(newUser) {
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(newUser.password, salt);
+    const [result] = await db.execute(
+      'INSERT INTO users (username, password, email) VALUES (?, ?, ?)',
+      [newUser.username, hashedPassword, newUser.email]
+    );
+    return result.insertId;
   }
-}, {
-  tableName: 'users',
-  hooks: {
-    beforeCreate: async (user) => {
-      if (user.password) {
-        const salt = await bcrypt.genSalt(10);
-        user.password = await bcrypt.hash(user.password, salt);
-      }
-    },
-    beforeUpdate: async (user) => {
-      if (user.changed('password')) {
-        const salt = await bcrypt.genSalt(10);
-        user.password = await bcrypt.hash(user.password, salt);
-      }
-    }
+
+  static async findByEmail(email) {
+    const [rows] = await db.execute('SELECT * FROM users WHERE email = ?', [email]);
+    return rows[0];
   }
-});
+
+  static async findById(id) {
+    const [rows] = await db.execute('SELECT * FROM users WHERE id = ?', [id]);
+    return rows[0];
+  }
+}
 
 module.exports = User;
 

@@ -2,12 +2,7 @@
 const express = require('express');
 const cors = require('cors');
 
-const sequelize = require('./config/database');
-
-const User = require('./models/user');
-const Sessio = require('./models/sessio');
-const Performance = require('./models/performance');
-
+const createTables = require('./config/tables');
 const userRoutes = require('./routes/userRoutes');
 
 const app = express();
@@ -21,23 +16,9 @@ app.use(cors(corsOptions));
 
 app.use(express.json());
 
-User.hasMany(Sessio, { foreignKey: 'host_user_id', as: 'hostedSessions' });
-Sessio.belongsTo(User, { foreignKey: 'host_user_id', as: 'host' });
-
-User.hasMany(Performance, { foreignKey: 'user_id' });
-Performance.belongsTo(User, { foreignKey: 'user_id' });
-
-Sessio.hasMany(Performance, { foreignKey: 'sessio_id' });
-Performance.belongsTo(Sessio, { foreignKey: 'sessio_id' });
-
 async function startServer() { 
   try {
-    await sequelize.authenticate();
-    console.log('✅ Connectat a MySQL (amb Sequelize)');
-
-    await sequelize.sync({ alter: true });
-    console.log('🔄 Models sincronitzats amb la BBDD');
-
+    await createTables();
     const PORT =  7001;
     const server = app.listen(PORT, () => {
       console.log(`🚀 Servidor Express escoltant al port http://localhost:${PORT}`);

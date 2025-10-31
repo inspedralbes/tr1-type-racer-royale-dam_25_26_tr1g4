@@ -1,27 +1,23 @@
-const { Sequelize } = require('sequelize');
+const mysql = require('mysql2');
 
-const sequelize = new Sequelize('projBD', 'root', '1234', {
-  host: '127.0.0.1',  
-  dialect: 'mysql',
-  dialectOptions: {
-    connectTimeout: 20000 // 20 seconds
-  },
-  pool: {
-      max: 5,    
-      min: 0,    
-      acquire: 30000, 
-      idle: 10000,    
-      testOnBorrow: true
-    }
+const pool = mysql.createPool({
+  host: '127.0.0.1',
+  user: 'root',
+  password: '1234',
+  database: 'projBD',
+  waitForConnections: true,
+  connectionLimit: 10,
+  queueLimit: 0
 });
 
-sequelize.authenticate()
-  .then(() => {
-    console.log('✅ Connection has been established successfully.');
-  })
-  .catch(err => {
+pool.getConnection((err, connection) => {
+  if (err) {
     console.error('❌ Unable to connect to the database:', err);
-  });
+    return;
+  }
+  console.log('✅ Connection has been established successfully.');
+  connection.release();
+});
 
-module.exports = sequelize;
+module.exports = pool.promise();
 

@@ -1,34 +1,27 @@
-const { DataTypes } = require('sequelize');
-const sequelize = require('../config/database');
-const Sessio = sequelize.define('Sessio', {
-  id: {
-    type: DataTypes.INTEGER,
-    autoIncrement: true,
-    primaryKey: true,
-  },
-  room_code: {
-    type: DataTypes.STRING(8),
-    allowNull: false,
-    unique: true,
-  },
-  status: {
-    type: DataTypes.ENUM('waiting', 'in-progress', 'finished'),
-    allowNull: false,
-    defaultValue: 'waiting',
-  },
-  num_participants: {
-    type: DataTypes.INTEGER,
-    allowNull: false,
-    defaultValue: 8,
-  },
-  duration: {
-    type: DataTypes.INTEGER,
-    allowNull: false,
-    defaultValue: 60,
-  },
-}, {
-  tableName: 'sessions',
-  timestamps: true,
-});
+const db = require('../config/database');
+
+class Sessio {
+  static async create(newSessio) {
+    const [result] = await db.execute(
+      'INSERT INTO sessions (room_code, status, num_participants, duration) VALUES (?, ?, ?, ?)',
+      [newSessio.room_code, newSessio.status, newSessio.num_participants, newSessio.duration]
+    );
+    return result.insertId;
+  }
+
+  static async findByRoomCode(roomCode) {
+    const [rows] = await db.execute('SELECT * FROM sessions WHERE room_code = ?', [roomCode]);
+    return rows[0];
+  }
+
+  static async findById(id) {
+    const [rows] = await db.execute('SELECT * FROM sessions WHERE id = ?', [id]);
+    return rows[0];
+  }
+
+  static async updateStatus(id, status) {
+    await db.execute('UPDATE sessions SET status = ? WHERE id = ?', [status, id]);
+  }
+}
 
 module.exports = Sessio;
