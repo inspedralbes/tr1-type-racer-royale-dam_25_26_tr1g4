@@ -4,6 +4,7 @@ const cors = require('cors');
 
 const createTables = require('./config/tables');
 const userRoutes = require('./routes/userRoutes');
+const WebSocket = require('./ws/gameSocket');
 
 const app = express();
 
@@ -21,16 +22,12 @@ async function startServer() {
     await createTables();
     const PORT =  7001;
     const server = app.listen(PORT, () => {
-      console.log(`🚀 Servidor Express escoltant al port http://localhost:${PORT}`);
+      console.log(` Servidor Express escoltant al port http://localhost:${PORT}`);
     });
-
-    server.on('error', (err) => {
-      console.error('❌ Error de servidor:', err);
-      process.exit(1);
-    });
+    WebSocket.initGameSocket(server);
 
   } catch (err) {
-    console.error('❌ Error de connexió a MySQL:', err);
+    console.error(' Error de connexió a MySQL:', err);
     process.exit(1);
   }
 }
