@@ -43,14 +43,65 @@ function handleMessage(ws, data) {
       leaveRoom(ws, payload);
       break;
     case 'send_message':
-      broadcast(payload.sessionId, {
+      broadcastMessage(payload.sessionId, {
         from: payload.username,
         message: payload.message,
       });
       break;
+
+       case 'update_reps':
+         if (ws.sessionId && ws.userId && payload && typeof payload.reps === 'number') {
+        updateReps(ws.sessionId, ws.userId, payload.reps);
+      } else {
+        console.error('Dades invàlides per a update_reps:', payload);
+      }
+      break;
     default:
       ws.send(JSON.stringify({ error: 'Acció desconeguda' }));
   }
+}
+/**
+ * Actualitza les repeticions d'un usuari i fa broadcast del nou Leaderboard.
+ * @param {string} sessionId - ID de la sala.
+ * @param {string} userId - ID de l'usuari que ha fet la repetició.
+ * @param {number} newRepCount - El nou total de repeticions de l'usuari.
+ */
+
+      function updateReps(sessionId, userId, newRepCount) {
+  const session = sessions[sessionId];
+if (!session || !session.participants[userId]) {
+    console.warn(`Sessió ${sessionId} o usuari ${userId} no trobat.`);
+    return;
+  }
+  // 1. Actualitzar l'estat local (in-memory)
+  session.participants[userId].reps = newRepCount;
+  console.log(`${session.participants[userId].username} té ara ${newRepCount} repeticions.`);
+  // 2. Enviar l'actualització de la classificació a tots els clients de la sala
+  broadcastLeaderboard(sessionId);
+}
+/**
+ * Genera el leaderboard, l'ordena i l'envia a tots els clients de la sessió.
+ * @param {string} sessionId - ID de la sala.
+ */
+
+function broadcastLeaderboard(sessionId) {
+  const session = sessions[sessionId];
+  if (!session) return;
+  // 1. Convertir l'objecte d'usuaris a un array de dades ({username, reps, ...})
+  const leaderboardArray = Object.values(session.participants);
+  // 2. Ordenar per repeticions de forma descendent (de més a menys)
+  leaderboardArray.sort((a, b) => b.reps - a.reps);
+  // 3. Crear el missatge estandarditzat
+  const leaderboardMessage = {
+    // És crucial que el client sàpiga quin tipus de missatge rep
+    type: 'leaderboard_update',
+    data: leaderboardArray, // Array ja ordenat
+  };
+
+   // 4. Utilitzar la funció existent per enviar a tots els clients de la sala
+  broadcastMessage(sessionId, leaderboardMessage);
+ 
+  console.log(`Leaderboard de la sessió ${sessionId} actualitzat i enviat.`);
 }
 
 async function LoggedIn(ws, userId) {
@@ -71,37 +122,84 @@ function login(ws, userId) {
 }
 
 function joinRoom(ws, { sessionId, username }) {
-  if (!sessions[sessionId]) sessions[sessionId] = [];
-  sessions[sessionId].push(ws);
+  if (!sessions[sessionId]) {
+    // 🚨 NOVA ESTRUCTURA DE LA SALA: Conté l'array de clients i l'objecte de participants (leaderboard)
+    sessions[sessionId] = {
+      clients: [], 
+      participants: {} 
+    };
+  }
+
+  // 1. Afegir el client al nou array de clients (per broadcast)
+  sessions[sessionId].clients.push(ws);
+  
+  // 2. Afegir l'usuari a la llista de participants amb 0 repeticions
+  sessions[sessionId].participants[userId] = {
+    username: username,
+    reps: 0, 
+    ws: ws 
+  };
+
+  // Associar dades clau al socket (crucial pel funcionament d''update_reps')
   ws.sessionId = sessionId;
+  ws.userId = userId;
   ws.username = username;
 
   console.log(`${username} s’ha unit a la sala ${sessionId}`);
-  broadcast(sessionId, { system: true, message: `${username} s’ha unit a la sala.` });
+  
+  // Notificació de sistema (utilitza la funció adaptada)
+  broadcastMessage(sessionId, { system: true, message: `${username} s’ha unit a la sala.` });
+  
+  // 3. Enviar el leaderboard inicial
+  broadcastLeaderboard(sessionId); 
 }
 
 function leaveRoom(ws, { sessionId }) {
+  // L'usuari haurà de tenir ws.userId assignat per funcionar
   if (!sessions[sessionId]) return;
-  sessions[sessionId] = sessions[sessionId].filter(client => client !== ws);
-  broadcast(sessionId, { system: true, message: `${ws.username} ha sortit de la sala.` });
+  
+  // Cridar a removeFromSessions per fer la neteja i el broadcast
+  removeFromSessions(ws);
+  
+  // Opcional: enviar missatge de sistema, ja que removeFromSessions ja ho fa implícitament
+  // broadcastMessage(sessionId, { system: true, message: `${ws.username} ha sortit de la sala.` });
 }
 
 function removeFromSessions(ws) {
   const sessionId = ws.sessionId;
+  const userId = ws.userId; 
+
   if (sessionId && sessions[sessionId]) {
-    sessions[sessionId] = sessions[sessionId].filter(client => client !== ws);
+    // 1. Eliminar del llistat de clients
+    sessions[sessionId].clients = sessions[sessionId].clients.filter(client => client !== ws);
+    
+    // 2. Eliminar del Leaderboard
+    if (sessions[sessionId].participants[userId]) {
+        broadcastMessage(sessionId, { system: true, message: `${sessions[sessionId].participants[userId].username} ha sortit de la sala.` });
+        delete sessions[sessionId].participants[userId];
+    }
+    
+    // 3. Actualitzar la classificació immediatament
+    broadcastLeaderboard(sessionId);
+    
+    // Neteja final: Si la sala queda buida, l'eliminem
+    if (sessions[sessionId].clients.length === 0) {
+        delete sessions[sessionId];
+        console.log(`Sala ${sessionId} eliminada per estar buida.`);
+    }
   }
 }
 
-function broadcast(sessionId, message) {
-  if (!sessions[sessionId]) return;
-  sessions[sessionId].forEach(client => {
+function broadcastMessage(sessionId, message) {
+  const session = sessions[sessionId];
+  if (!session || !session.clients) return;
+ 
+  session.clients.forEach(client => {
     if (client.readyState === client.OPEN) {
       client.send(JSON.stringify(message));
     }
   });
 }
-
-
-
 module.exports = { initGameSocket };
+
+
