@@ -18,6 +18,8 @@ async function createTables() {
     CREATE TABLE IF NOT EXISTS sessions (
       id INT AUTO_INCREMENT PRIMARY KEY,
       room_code VARCHAR(8) NOT NULL UNIQUE,
+      is_public BOOLEAN NOT NULL DEFAULT FALSE,
+      exercise_text TEXT,
       status ENUM('waiting', 'in-progress', 'finished') NOT NULL DEFAULT 'waiting',
       num_participants INT NOT NULL DEFAULT 8,
       duration INT NOT NULL DEFAULT 60,

@@ -12,7 +12,7 @@
             <v-window-item value="private">
               <v-card-text class="pa-5">
                 <v-btn @click="crearSala" block color="secondary" size="large" class="mb-6" :loading="loading">
-                  Crear Sala Nueva
+                  Crear Sala Privada
                 </v-btn>
                 <v-divider class="mb-6"></v-divider>
                 <h3 class="mb-4">O Unirse a Sala Existente</h3>
@@ -41,27 +41,28 @@
 
             <v-window-item value="public">
               <v-card-text class="pa-5">
+                <v-btn @click="crearSalaPublica" block color="secondary" size="large" class="mb-6" :loading="loading">
+                  Crear Sala Pública
+                </v-btn>
+                <v-divider class="mb-6"></v-divider>
                 <h3 class="mb-4">Salas Públicas Disponibles</h3>
 
                 <v-list lines="two">
                   <v-list-item
                     v-for="sala in salasPublicas"
                     :key="sala.id"
-                    :title="sala.nombre"
-                    :subtitle="`${sala.jugadores} / ${sala.maxJugadores} Jugadores`"
+                    :title="`Sala ${sala.id}`"
+                    :subtitle="`Ejercicio: ${sala.exercise}`"
                   >
                     <template v-slot:append>
+                      <v-chip class="mr-4">{{ sala.jugadores }} / {{ sala.maxJugadores }}</v-chip>
                       <v-btn
                         @click="unirseSalaPublica(sala.id)"
                         :disabled="sala.jugadores >= sala.maxJugadores || loading"
                         color="primary"
                         variant="tonal"
                       >
-                        {{
-                          sala.jugadores >= sala.maxJugadores
-                            ? "Llena"
-                            : "Unirse"
-                        }}
+                        {{ sala.jugadores >= sala.maxJugadores ? "Llena" : "Unirse" }}
                       </v-btn>
                     </template>
                   </v-list-item>
@@ -96,10 +97,7 @@ const tab = ref("private");
 const loading = ref(false);
 const errorMessage = ref("");
 
-const salaPrivada = ref({
-  id: "",
-});
-
+const salaPrivada = ref({ id: "" });
 const salasPublicas = ref([]);
 
 function handleWebSocketMessages() {
@@ -113,12 +111,15 @@ function handleWebSocketMessages() {
           router.push({ name: "sala", params: { id: data.payload.roomId } });
           break;
         case 'join_success':
-          console.log('Navegando a la sala:', data.payload.roomId); 
-          break;
-        case 'player_joined':
           loading.value = false;
           router.push({ name: "sala", params: { id: data.payload.roomId } });
-          console.log(`Jugador unido. Jugadores en la sala: ${data.payload.players.join(', ')}`);
+          break;
+        case 'player_joined':
+          // Actualizar la lista de salas públicas si alguien se une
+          wsStore.sendMessage({ action: 'get_public_rooms', payload: {} });
+          break;
+        case 'public_rooms_list':
+          salasPublicas.value = data.payload;
           break;
         case 'room_full':
           console.log(`La sala ${data.payload.roomId} está llena. ¡Empezando!`);
@@ -133,12 +134,17 @@ function handleWebSocketMessages() {
   }
 }
 
-// --- Métodos ---
-
 function crearSala() {
   loading.value = true;
   errorMessage.value = "";
   wsStore.sendMessage({ action: 'create_room', payload: {} });
+}
+
+function crearSalaPublica() {
+  loading.value = true;
+  errorMessage.value = "";
+  // TODO: Pedir al usuario que elija un ejercicio
+  wsStore.sendMessage({ action: 'create_public_room', payload: { exercise_text: 'Ejercicio de prueba' } });
 }
 
 function unirseSalaPrivada() {
@@ -152,46 +158,51 @@ function unirseSalaPrivada() {
 }
 
 function unirseSalaPublica(idSala) {
-  alert(`Funcionalidad para unirse a salas públicas no implementada. ID: ${idSala}`);
+  loading.value = true;
+  errorMessage.value = "";
+  wsStore.sendMessage({ action: 'join_room', payload: { roomId: idSala } });
 }
 
 // --- Ciclo de vida ---
-
-onMounted(async () => {
+onMounted(() => {
   loading.value = true;
   const username = localStorage.getItem("username");
   if (!username) {
-    errorMessage.value =
-      "Error de autenticación. Por favor, inicia sesión de nuevo.";
+    errorMessage.value = "Error de autenticación. Por favor, inicia sesión de nuevo.";
     loading.value = false;
     return;
   }
 
-  if (!wsStore.isConnected) {
-    wsStore.connect(`ws://localhost:7001?username=${encodeURIComponent(username)}`);
-  }
-
-  // Espera a que la conexión se establezca
-  const waitForConnection = (callback, interval = 100, timeout = 5000) => {
-    const startTime = Date.now();
-    const check = () => {
-      if (wsStore.isConnected) {
-        loading.value = false;
-        callback();
-      } else if (Date.now() - startTime > timeout) {
-        loading.value = false;
-        errorMessage.value = "No se pudo conectar con el servidor de salas.";
-      } else {
-        setTimeout(check, interval);
-      }
-    };
-    check();
+  const connectAndFetch = () => {
+    handleWebSocketMessages();
+    wsStore.sendMessage({ action: 'get_public_rooms', payload: {} });
+    loading.value = false;
   };
 
-  waitForConnection(() => {
-    handleWebSocketMessages();
-    // sendMessage('get_public_rooms', {});
-  });
+  if (wsStore.isConnected) {
+    connectAndFetch();
+    return;
+  }
+
+  wsStore.connect(`ws://localhost:7001?username=${encodeURIComponent(username)}`);
+
+  const connectionTimeout = 5000; // 5 seconds
+  const checkInterval = 100; // 100 ms
+  let timeElapsed = 0;
+
+  const connectionInterval = setInterval(() => {
+    timeElapsed += checkInterval;
+    if (wsStore.isConnected) {
+      clearInterval(connectionInterval);
+      connectAndFetch();
+    } else if (timeElapsed >= connectionTimeout) {
+      clearInterval(connectionInterval);
+      if (!wsStore.isConnected) { // Re-check in case it connected just before timeout
+        errorMessage.value = "No se pudo conectar con el servidor de salas.";
+        loading.value = false;
+      }
+    }
+  }, checkInterval);
 });
 </script>
 

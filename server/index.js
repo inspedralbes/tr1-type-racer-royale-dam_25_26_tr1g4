@@ -1,8 +1,8 @@
 
 const express = require('express');
 const cors = require('cors');
-const { WebSocketServer } = require('ws'); // Importamos el servidor de WebSocket
-
+const { WebSocketServer } = require('ws');
+const db = require('./config/database');
 const createTables = require('./config/tables');
 const userRoutes = require('./routes/userRoutes');
 
@@ -14,18 +14,64 @@ const corsOptions = {
     allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
 };
 app.use(cors(corsOptions));
-
 app.use(express.json());
 
-const rooms = {};
+const connectedClients = new Map();
 const MAX_PLAYERS_PER_ROOM = 4;
+let wss; // Define wss in a broader scope
 
 function generateRoomId() {
     return Math.random().toString(36).substring(2, 8).toUpperCase();
 }
 
+function getRoomClients(roomId) {
+    return connectedClients.get(roomId) || new Set();
+}
+
+function broadcastToRoom(roomId, message, excludeWs) {
+    const clients = getRoomClients(roomId);
+    for (const client of clients) {
+        if (client !== excludeWs && client.readyState === client.OPEN) {
+            client.send(JSON.stringify(message));
+        }
+    }
+}
+
+async function get_public_rooms(ws) {
+    try {
+        const [rooms] = await db.execute(
+            `SELECT s.room_code, s.exercise_text, COUNT(p.id) as num_players
+             FROM sessions s
+             LEFT JOIN performances p ON s.id = p.sessio_id
+             WHERE s.is_public = TRUE AND s.status = 'waiting'
+             GROUP BY s.id`
+        );
+
+        const publicRooms = rooms.map(room => ({
+            id: room.room_code,
+            exercise: room.exercise_text,
+            jugadores: room.num_players,
+            maxJugadores: MAX_PLAYERS_PER_ROOM
+        }));
+
+        wss.clients.forEach(client => {
+            if (client.readyState === client.OPEN) {
+                client.send(JSON.stringify({
+                    action: 'public_rooms_list',
+                    payload: publicRooms
+                }));
+            }
+        });
+    } catch (error) {
+        console.error('Error al obtener las salas públicas:', error);
+        if (ws) {
+            ws.send(JSON.stringify({ action: 'error', payload: { message: 'Error al obtener las salas públicas.' } }));
+        }
+    }
+}
+
 function initWebSocket(server) {
-    const wss = new WebSocketServer({ server });
+    wss = new WebSocketServer({ server }); // Assign to the broader scope wss
     console.log('Servidor de WebSockets activo y escuchando en el mismo puerto que Express.');
 
     wss.on('connection', (ws, req) => {
@@ -33,7 +79,6 @@ function initWebSocket(server) {
         const username = urlParams.get('username');
 
         if (!username) {
-            console.log('Conexión rechazada: No se proporcionó nombre de usuario.');
             ws.close(1008, "Nombre de usuario no proporcionado");
             return;
         }
@@ -41,7 +86,7 @@ function initWebSocket(server) {
         ws.username = username;
         console.log(`Cliente conectado: ${ws.username}`);
 
-        ws.on('message', message => {
+        ws.on('message', async message => {
             let data;
             try {
                 data = JSON.parse(message);
@@ -54,53 +99,136 @@ function initWebSocket(server) {
 
             switch (action) {
                 case 'create_room': {
-                    const roomId = generateRoomId();
-                    rooms[roomId] = {
-                        id: roomId,
-                        players: [{ ws, username: ws.username }],
-                    };
-                    ws.roomId = roomId;
+                    const roomCode = generateRoomId();
+                    try {
+                        const [result] = await db.execute(
+                            'INSERT INTO sessions (room_code, is_public, status) VALUES (?, ?, ?)',
+                            [roomCode, false, 'waiting']
+                        );
+                        const roomId = result.insertId;
+                        ws.roomId = roomId;
 
-                    ws.send(JSON.stringify({ action: 'room_created', payload: { roomId } }));
-                    console.log(`Sala ${roomId} creada por ${ws.username}`);
+                        if (!connectedClients.has(roomId)) {
+                            connectedClients.set(roomId, new Set());
+                        }
+                        connectedClients.get(roomId).add(ws);
+
+                        await db.execute(
+                            'INSERT INTO performances (user_id, sessio_id, won) VALUES ((SELECT id FROM users WHERE username = ?), ?, ?)',
+                            [ws.username, roomId, false]
+                        );
+
+                        ws.send(JSON.stringify({
+                            action: 'room_created',
+                            payload: { roomId: roomCode }
+                        }));
+                        console.log(`Sala privada ${roomCode} (ID: ${roomId}) creada por ${ws.username}`);
+                    } catch (error) {
+                        console.error('Error al crear la sala privada:', error);
+                        ws.send(JSON.stringify({ action: 'error', payload: { message: 'Error al crear la sala privada.' } }));
+                    }
+                    break;
+                }
+
+                case 'create_public_room': {
+                    const { exercise_text } = payload;
+                    if (!exercise_text) {
+                        ws.send(JSON.stringify({ action: 'error', payload: { message: 'El texto del ejercicio es obligatorio.' } }));
+                        return;
+                    }
+                    const roomCode = generateRoomId();
+                    try {
+                        const [result] = await db.execute(
+                            'INSERT INTO sessions (room_code, is_public, exercise_text, status) VALUES (?, ?, ?, ?)',
+                            [roomCode, true, exercise_text, 'waiting']
+                        );
+                        const roomId = result.insertId;
+                        ws.roomId = roomId;
+
+                        if (!connectedClients.has(roomId)) {
+                            connectedClients.set(roomId, new Set());
+                        }
+                        connectedClients.get(roomId).add(ws);
+                        
+                        await db.execute(
+                            'INSERT INTO performances (user_id, sessio_id, won) VALUES ((SELECT id FROM users WHERE username = ?), ?, ?)',
+                            [ws.username, roomId, false]
+                        );
+
+                        ws.send(JSON.stringify({
+                            action: 'room_created',
+                            payload: { roomId: roomCode }
+                        }));
+                        console.log(`Sala pública ${roomCode} (ID: ${roomId}) creada por ${ws.username}`);
+                        
+                        await get_public_rooms(ws);
+
+                    } catch (error) {
+                        console.error('Error al crear la sala pública:', error);
+                        ws.send(JSON.stringify({ action: 'error', payload: { message: 'Error al crear la sala pública.' } }));
+                    }
+                    break;
+                }
+
+                case 'get_public_rooms': {
+                    await get_public_rooms(ws);
                     break;
                 }
 
                 case 'join_room': {
-                    const { roomId } = payload;
-                    const room = rooms[roomId];
+                    const { roomId: roomCode } = payload;
+                    try {
+                        const [rows] = await db.execute('SELECT id, status FROM sessions WHERE room_code = ?', [roomCode]);
+                        if (rows.length === 0) {
+                            ws.send(JSON.stringify({ action: 'error', payload: { message: 'La sala no existe.' } }));
+                            return;
+                        }
+                        const room = rows[0];
+                        const roomId = room.id;
 
-                    if (!room) {
-                        ws.send(JSON.stringify({ action: 'error', payload: { message: 'La sala no existe.' } }));
-                        return;
-                    }
+                        const [performances] = await db.execute('SELECT * FROM performances WHERE sessio_id = ?', [roomId]);
 
-                    if (room.players.length >= MAX_PLAYERS_PER_ROOM) {
-                        ws.send(JSON.stringify({ action: 'error', payload: { message: 'La sala está llena.' } }));
-                        return;
-                    }
+                        if (performances.length >= MAX_PLAYERS_PER_ROOM) {
+                            ws.send(JSON.stringify({ action: 'error', payload: { message: 'La sala está llena.' } }));
+                            return;
+                        }
 
-                    room.players.push({ ws, username: ws.username });
-                    ws.roomId = roomId;
+                        ws.roomId = roomId;
+                        if (!connectedClients.has(roomId)) {
+                            connectedClients.set(roomId, new Set());
+                        }
+                        connectedClients.get(roomId).add(ws);
 
-                    const playerUsernames = room.players.map(p => p.username);
-                    console.log(`Jugador ${ws.username} unido a la sala ${roomId}. Jugadores: [${playerUsernames.join(', ')}]`);
+                        await db.execute(
+                            'INSERT INTO performances (user_id, sessio_id, won) VALUES ((SELECT id FROM users WHERE username = ?), ?, ?)',
+                            [ws.username, roomId, false]
+                        );
 
-                    const messageToBroadcast = JSON.stringify({
-                        action: 'player_joined',
-                        payload: { roomId, players: playerUsernames, maxPlayers: MAX_PLAYERS_PER_ROOM }
-                    });
+                        const [updatedPerformances] = await db.execute(
+                            'SELECT u.username FROM performances p JOIN users u ON p.user_id = u.id WHERE p.sessio_id = ?',
+                            [roomId]
+                        );
+                        const playerUsernames = updatedPerformances.map(p => p.username);
 
-                    room.players.forEach(p => {
-                        if (p.ws.readyState === p.ws.OPEN) p.ws.send(messageToBroadcast);
-                    });
+                        const joinSuccessPayload = {
+                            roomId: roomCode,
+                            players: playerUsernames,
+                            maxPlayers: MAX_PLAYERS_PER_ROOM
+                        };
 
-                    if (room.players.length === MAX_PLAYERS_PER_ROOM) {
-                        const roomFullMessage = JSON.stringify({ action: 'room_full', payload: { roomId } });
-                        room.players.forEach(p => {
-                            if (p.ws.readyState === p.ws.OPEN) p.ws.send(roomFullMessage);
-                        });
-                        console.log(`Sala ${roomId} llena. Notificando a los jugadores.`);
+                        ws.send(JSON.stringify({ action: 'join_success', payload: joinSuccessPayload }));
+
+                        broadcastToRoom(roomId, { action: 'player_joined', payload: joinSuccessPayload }, ws);
+
+                        console.log(`Jugador ${ws.username} unido a la sala ${roomCode}. Jugadores: [${playerUsernames.join(', ')}]`);
+
+                        if (playerUsernames.length === MAX_PLAYERS_PER_ROOM) {
+                            broadcastToRoom(roomId, { action: 'room_full', payload: { roomId: roomCode } });
+                            console.log(`Sala ${roomCode} llena. Notificando a los jugadores.`);
+                        }
+                    } catch (error) {
+                        console.error('Error al unirse a la sala:', error);
+                        ws.send(JSON.stringify({ action: 'error', payload: { message: 'Error al unirse a la sala.' } }));
                     }
                     break;
                 }
@@ -109,24 +237,29 @@ function initWebSocket(server) {
 
         ws.on('close', () => {
             console.log(`Cliente ${ws.username || '(anónimo)'} desconectado`);
-            // Aquí iría la lógica para eliminar al jugador de la sala si estuviera en una.
+            const roomId = ws.roomId;
+            if (roomId && connectedClients.has(roomId)) {
+                connectedClients.get(roomId).delete(ws);
+                if (connectedClients.get(roomId).size === 0) {
+                    connectedClients.delete(roomId);
+                }
+            }
         });
     });
 }
 
-async function startServer() {  
-  try {
-    await createTables();
-    const PORT =  7001;
-    const server = app.listen(PORT, () => {
-      console.log(` Servidor Express escoltant al port http://localhost:${PORT}`);
-    });
-    initWebSocket(server); // Iniciamos el WebSocket en el mismo servidor
-
-  } catch (err) {
-    console.error(' Error de connexió a MySQL:', err);
-    process.exit(1);
-  }
+async function startServer() {
+    try {
+        await createTables();
+        const PORT = 7001;
+        const server = app.listen(PORT, () => {
+            console.log(`Servidor Express escoltant al port http://localhost:${PORT}`);
+        });
+        initWebSocket(server);
+    } catch (err) {
+        console.error('Error de connexió a MySQL:', err);
+        process.exit(1);
+    }
 }
 
 app.use('/api/users', userRoutes);

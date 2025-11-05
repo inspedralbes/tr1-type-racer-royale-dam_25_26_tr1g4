@@ -23,6 +23,8 @@ export const useWebSocketStore = defineStore('websocket', {
       };
       this.socket.onerror = (error) => {
         console.error('WebSocket error:', error);
+        this.isConnected = false;
+        this.socket = null;
       };
     },
     disconnect() {
