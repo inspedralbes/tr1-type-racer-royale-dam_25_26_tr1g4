@@ -82,9 +82,18 @@
       </v-col>
     </v-row>
   </v-container>
+<v-row>
+        <div class="leaderboard-panel">
+            <GlobalLeaderboard /> 
+        </div>
+</v-row>
+
+
+
 </template>
 
 <script setup>
+import GlobalLeaderboard from '../components/GlobalLeaderboard.vue';
 import { ref, onMounted, onBeforeUnmount } from "vue";
 import { useRouter } from "vue-router";
 

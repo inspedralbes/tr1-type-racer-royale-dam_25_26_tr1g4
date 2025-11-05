@@ -40,10 +40,21 @@ async function createTables() {
     );
   `;
 
+  //Taula per el leaderboard global
+const resultatsGlobals =
+`CREATE TABLE IF NOT EXISTS ResultatsGlobals (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id VARCHAR(255) NOT NULL,
+    username VARCHAR(255) NOT NULL,
+    repeticions_totals INT NOT NULL,
+    data_record DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);`
+
   try {
     await db.execute(usersTable);
     await db.execute(sessionsTable);
     await db.execute(performancesTable);
+    await db.execute(resultatsGlobals);
     console.log('🔄 Tables created or already exist.');
   } catch (err) {
     console.error('❌ Error creating tables:', err);

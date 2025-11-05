@@ -1,27 +1,28 @@
 const db = require('../config/database');
+const bcrypt = require('bcryptjs');
 
-class Sessio {
-  static async create(newSessio) {
+class User {
+  static async create(newUser) {
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(newUser.password, salt);
     const [result] = await db.execute(
-      'INSERT INTO sessions (room_code, status, num_participants, duration) VALUES (?, ?, ?, ?)',
-      [newSessio.room_code, newSessio.status, newSessio.num_participants, newSessio.duration]
+      'INSERT INTO users (username, password, email) VALUES (?, ?, ?)',
+      [newUser.username, hashedPassword, newUser.email]
     );
     return result.insertId;
   }
 
-  static async findByRoomCode(roomCode) {
-    const [rows] = await db.execute('SELECT * FROM sessions WHERE room_code = ?', [roomCode]);
+  static async findByEmail(email) {
+    const [rows] = await db.execute('SELECT * FROM users WHERE email = ?', [email]);
     return rows[0];
   }
 
   static async findById(id) {
-    const [rows] = await db.execute('SELECT * FROM sessions WHERE id = ?', [id]);
+    const [rows] = await db.execute('SELECT * FROM users WHERE id = ?', [id]);
     return rows[0];
-  }
-
-  static async updateStatus(id, status) {
-    await db.execute('UPDATE sessions SET status = ? WHERE id = ?', [status, id]);
   }
 }
 
-module.exports = Sessio;
+module.exports = User;
+
+
