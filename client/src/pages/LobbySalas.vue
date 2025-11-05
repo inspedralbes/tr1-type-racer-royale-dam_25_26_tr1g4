@@ -1,6 +1,6 @@
 <template>
-  <v-container class="fill-height">
-    <v-row justify="center" align="center">
+  <v-container class="pb-0 pt-15">
+    <v-row justify="center">
       <v-col cols="12" md="6" sm="8">
         <v-card class="elevation-12">
           <v-tabs v-model="tab" bg-color="primary" fixed-tabs>
@@ -82,14 +82,16 @@
       </v-col>
     </v-row>
   </v-container>
-<v-row>
-        <div class="leaderboard-panel">
-            <GlobalLeaderboard /> 
-        </div>
-</v-row>
-
-
-
+  <v-row justify="center" class="mt-n8">
+    <v-col cols="12" md="6" sm="8">
+      <v-card class="elevation-6 leaderboard-panel rounded-lg">
+        <v-card-title class="text-center py-4 bg-primary text-white">
+          Tabla de Clasificación Global
+        </v-card-title>
+        <GlobalLeaderboard />
+      </v-card>
+    </v-col>
+  </v-row>
 </template>
 
 <script setup>
@@ -224,5 +226,9 @@ onBeforeUnmount(() => {
 }
 .mb-6 {
   margin-bottom: 2rem;
+}
+.leaderboard-panel {
+  margin-top: 2rem;
+  width: 100%;
 }
 </style>
