@@ -1,7 +1,7 @@
 
-//const { WebSocketServer } = require('ws');
+const { WebSocketServer } = require('ws');
 //const Sessio = require('../models/sessio');
-const db = require('../db/database');
+const db = require('../config/database');
 
 //const sessions = {};
 

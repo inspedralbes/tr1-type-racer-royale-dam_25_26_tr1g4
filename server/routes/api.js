@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 
-const db = require('../db/database'); 
+const db = require('../config/database'); 
 
 // Ruta per obtenir els millors resultats històrics
 router.get('/leaderboard/global', async (req, res) => { //ruta api

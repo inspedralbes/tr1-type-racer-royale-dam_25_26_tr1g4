@@ -5,7 +5,7 @@ const { WebSocketServer } = require('ws'); // Importamos el servidor de WebSocke
 
 const createTables = require('./config/tables');
 const userRoutes = require('./routes/userRoutes');
-const { checkGlobalRecord } = require('./gameSocket'); // Ruta al teu mòdul de BD
+const { checkGlobalRecord } = require('./ws/gameSocket'); // Ruta al teu mòdul de BD
 
 const app = express();
 
