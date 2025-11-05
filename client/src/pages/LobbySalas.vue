@@ -85,10 +85,12 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onBeforeUnmount } from "vue";
+import { ref, onMounted } from "vue";
 import { useRouter } from "vue-router";
+import { useWebSocketStore } from "@/stores/websocket";
 
 const router = useRouter();
+const wsStore = useWebSocketStore();
 
 const tab = ref("private");
 const loading = ref(false);
@@ -100,66 +102,34 @@ const salaPrivada = ref({
 
 const salasPublicas = ref([]);
 
-let ws = null;
+function handleWebSocketMessages() {
+  if (wsStore.socket) {
+    wsStore.socket.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+      console.log('Mensaje del servidor:', data);
 
-function connectWebSocket() {
-  const username = localStorage.getItem("username");
-  if (!username) {
-    errorMessage.value =
-      "Error de autenticación. Por favor, inicia sesión de nuevo.";
-    loading.value = false;
-    return;
-  }
-
-  ws = new WebSocket(`ws://localhost:7001?username=${encodeURIComponent(username)}`);
-
-  ws.onopen = () => {
-    console.log('Conectado al servidor de WebSockets');
-    loading.value = false;
-  };
-
-  ws.onmessage = (event) => {
-    const data = JSON.parse(event.data);
-    console.log('Mensaje del servidor:', data);
-
-    switch (data.action) {
-      case 'room_created':
-        // El servidor nos ha confirmado que la sala se creó y nos devuelve el ID
-        router.push({ name: "sala", params: { id: data.payload.roomId } });
-        break;
-      case 'player_joined':
-        // Un jugador se ha unido, podríamos actualizar la UI si fuera necesario
-        console.log(`Jugador unido. Jugadores en la sala: ${data.payload.players.join(', ')}`);
-        break;
-      case 'room_full':
-        // La sala está llena, el juego puede empezar. Navegamos a la sala.
-        console.log(`La sala ${data.payload.roomId} está llena. ¡Empezando!`);
-        router.push({ name: "sala", params: { id: data.payload.roomId } });
-        break;
-      case 'error':
-        errorMessage.value = data.payload.message;
-        loading.value = false;
-        break;
-    }
-  };
-
-  ws.onclose = () => {
-    console.log('Desconectado del servidor de WebSockets');
-    // Opcional: intentar reconectar
-  };
-
-  ws.onerror = (error) => {
-    console.error('Error de WebSocket:', error);
-    errorMessage.value = "No se pudo conectar con el servidor de salas.";
-    loading.value = false;
-  };
-}
-
-function sendMessage(action, payload) {
-  if (ws && ws.readyState === WebSocket.OPEN) {
-    ws.send(JSON.stringify({ action, payload }));
-  } else {
-    errorMessage.value = "No hay conexión con el servidor.";
+      switch (data.action) {
+        case 'room_created':
+          router.push({ name: "sala", params: { id: data.payload.roomId } });
+          break;
+        case 'join_success':
+          console.log('Navegando a la sala:', data.payload.roomId); 
+          break;
+        case 'player_joined':
+          loading.value = false;
+          router.push({ name: "sala", params: { id: data.payload.roomId } });
+          console.log(`Jugador unido. Jugadores en la sala: ${data.payload.players.join(', ')}`);
+          break;
+        case 'room_full':
+          console.log(`La sala ${data.payload.roomId} está llena. ¡Empezando!`);
+          router.push({ name: "sala", params: { id: data.payload.roomId } });
+          break;
+        case 'error':
+          errorMessage.value = data.payload.message;
+          loading.value = false;
+          break;
+      }
+    };
   }
 }
 
@@ -168,7 +138,7 @@ function sendMessage(action, payload) {
 function crearSala() {
   loading.value = true;
   errorMessage.value = "";
-  sendMessage('create_room', {});
+  wsStore.sendMessage({ action: 'create_room', payload: {} });
 }
 
 function unirseSalaPrivada() {
@@ -178,12 +148,10 @@ function unirseSalaPrivada() {
   }
   loading.value = true;
   errorMessage.value = "";
-  sendMessage('join_room', { roomId: salaPrivada.value.id });
+  wsStore.sendMessage({ action: 'join_room', payload: { roomId: salaPrivada.value.id } });
 }
 
 function unirseSalaPublica(idSala) {
-  // La lógica para salas públicas sería similar, enviando un 'join_room'
-  // Por ahora, lo mantenemos simple y enfocado en la creación/unión de salas privadas.
   alert(`Funcionalidad para unirse a salas públicas no implementada. ID: ${idSala}`);
 }
 
@@ -191,15 +159,39 @@ function unirseSalaPublica(idSala) {
 
 onMounted(async () => {
   loading.value = true;
-  connectWebSocket();
-  // En una app real, podrías pedir la lista de salas públicas al conectar.
-  // sendMessage('get_public_rooms', {});
-});
-
-onBeforeUnmount(() => {
-  if (ws) {
-    ws.close();
+  const username = localStorage.getItem("username");
+  if (!username) {
+    errorMessage.value =
+      "Error de autenticación. Por favor, inicia sesión de nuevo.";
+    loading.value = false;
+    return;
   }
+
+  if (!wsStore.isConnected) {
+    wsStore.connect(`ws://localhost:7001?username=${encodeURIComponent(username)}`);
+  }
+
+  // Espera a que la conexión se establezca
+  const waitForConnection = (callback, interval = 100, timeout = 5000) => {
+    const startTime = Date.now();
+    const check = () => {
+      if (wsStore.isConnected) {
+        loading.value = false;
+        callback();
+      } else if (Date.now() - startTime > timeout) {
+        loading.value = false;
+        errorMessage.value = "No se pudo conectar con el servidor de salas.";
+      } else {
+        setTimeout(check, interval);
+      }
+    };
+    check();
+  };
+
+  waitForConnection(() => {
+    handleWebSocketMessages();
+    // sendMessage('get_public_rooms', {});
+  });
 });
 </script>
 

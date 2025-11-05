@@ -85,7 +85,17 @@ wss.on('connection', (ws, req) => {
                     const playerUsernames = room.players.map(p => p.username);
                     console.log(`Jugador ${ws.username} unido a la sala ${roomId}. Jugadores: [${playerUsernames.join(', ')}]`);
 
-                    // Notificar a todos los jugadores de la sala sobre el nuevo integrante
+                    // Notificar al jugador que se ha unido
+                    ws.send(JSON.stringify({
+                        action: 'join_success',
+                        payload: { 
+                            roomId,
+                            players: playerUsernames,
+                            maxPlayers: MAX_PLAYERS_PER_ROOM
+                        }
+                    }));
+
+                    // Notificar a los otros jugadores de la sala sobre el nuevo integrante
                     const messageToBroadcast = JSON.stringify({
                         action: 'player_joined',
                         payload: {
@@ -96,7 +106,7 @@ wss.on('connection', (ws, req) => {
                     });
 
                     room.players.forEach(p => {
-                        if (p.ws.readyState === p.ws.OPEN) {
+                        if (p.ws !== ws && p.ws.readyState === p.ws.OPEN) {
                             p.ws.send(messageToBroadcast);
                         }
                     });
