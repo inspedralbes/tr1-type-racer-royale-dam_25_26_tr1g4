@@ -93,36 +93,29 @@ function getRoomClients(roomId) {
     return connectedClients.get(roomId) || new Set();
 }
 
-async function get_public_rooms(ws) {
+function get_public_rooms() {
     try {
-        const [rooms] = await db.execute(
-            `SELECT s.room_code, s.exercise_text, COUNT(p.id) as num_players
-             FROM sessions s
-             LEFT JOIN performances p ON s.id = p.sessio_id
-             WHERE s.is_public = TRUE AND s.status = 'waiting'
-             GROUP BY s.id`
-        );
+        const publicRooms = Object.values(rooms)
+            .filter(room => room.isPublic && room.status === 'waiting')
+            .map(room => ({
+                id: room.id,
+                exercise: room.exercise,
+                jugadores: room.players.length,
+                maxJugadores: MAX_PLAYERS_PER_ROOM
+            }));
 
-        const publicRooms = rooms.map(room => ({
-            id: room.room_code,
-            exercise: room.exercise_text,
-            jugadores: room.num_players,
-            maxJugadores: MAX_PLAYERS_PER_ROOM
-        }));
+        const message = {
+            action: 'public_rooms_list',
+            payload: publicRooms
+        };
 
         wss.clients.forEach(client => {
             if (client.readyState === client.OPEN) {
-                client.send(JSON.stringify({
-                    action: 'public_rooms_list',
-                    payload: publicRooms
-                }));
+                client.send(JSON.stringify(message));
             }
         });
     } catch (error) {
         console.error('Error al obtener las salas públicas:', error);
-        if (ws) {
-            ws.send(JSON.stringify({ action: 'error', payload: { message: 'Error al obtener las salas públicas.' } }));
-        }
     }
 }
 
@@ -155,34 +148,27 @@ function initWebSocket(server) {
 
             switch (action) {
                 case 'create_room': {
-                    try {
-                        const roomCode = generateRoomId();
-                        const roomId = roomCode;  // For private rooms, we use the generated code as the ID
-                        rooms[roomId] = {
-                            id: roomId,
-                            players: [{ ws, username: ws.username, reps: 0}],
-                        };
-                        ws.roomId = roomId;
+                    const roomCode = generateRoomId();
+                    const roomId = roomCode;
+                    rooms[roomId] = {
+                        id: roomId,
+                        players: [{ ws, username: ws.username, reps: 0 }],
+                        isPublic: false,
+                        status: 'waiting',
+                        maxPlayers: MAX_PLAYERS_PER_ROOM
+                    };
+                    ws.roomId = roomId;
 
-                        if (!connectedClients.has(roomId)) {
-                            connectedClients.set(roomId, new Set());
-                        }
-                        connectedClients.get(roomId).add(ws);
-
-                        await db.execute(
-                            'INSERT INTO performances (user_id, sessio_id, won) VALUES ((SELECT id FROM users WHERE username = ?), ?, ?)',
-                            [ws.username, roomId, false]
-                        );
-
-                        ws.send(JSON.stringify({
-                            action: 'room_created',
-                            payload: { roomId: roomCode }
-                        }));
-                        console.log(`Sala privada ${roomCode} (ID: ${roomId}) creada por ${ws.username}`);
-                    } catch (error) {
-                        console.error('Error al crear la sala privada:', error);
-                        ws.send(JSON.stringify({ action: 'error', payload: { message: 'Error al crear la sala privada.' } }));
+                    if (!connectedClients.has(roomId)) {
+                        connectedClients.set(roomId, new Set());
                     }
+                    connectedClients.get(roomId).add(ws);
+
+                    ws.send(JSON.stringify({
+                        action: 'room_created',
+                        payload: { roomId: roomCode }
+                    }));
+                    console.log(`Sala privada ${roomCode} (ID: ${roomId}) creada por ${ws.username}`);
                     break;
                 }
 
@@ -193,71 +179,16 @@ function initWebSocket(server) {
                         return;
                     }
                     const roomCode = generateRoomId();
-                    try {
-                        const [result] = await db.execute(
-                            'INSERT INTO sessions (room_code, is_public, exercise_text, status) VALUES (?, ?, ?, ?)',
-                            [roomCode, true, exercise_text, 'waiting']
-                        );
-                        const roomId = result.insertId;
-                        ws.roomId = roomId;
-
-                        if (!connectedClients.has(roomId)) {
-                            connectedClients.set(roomId, new Set());
-                        }
-                        connectedClients.get(roomId).add(ws);
-                        
-                        await db.execute(
-                            'INSERT INTO performances (user_id, sessio_id, won) VALUES ((SELECT id FROM users WHERE username = ?), ?, ?)',
-                            [ws.username, roomId, false]
-                        );
-
-                        ws.send(JSON.stringify({
-                            action: 'room_created',
-                            payload: { roomId: roomCode }
-                        }));
-                        console.log(`Sala pública ${roomCode} (ID: ${roomId}) creada por ${ws.username}`);
-                        
-                        await get_public_rooms(ws);
-
-                    } catch (error) {
-                        console.error('Error al crear la sala pública:', error);
-                        ws.send(JSON.stringify({ action: 'error', payload: { message: 'Error al crear la sala pública.' } }));
-                    }
-                    break;
-                }
-
-                case 'get_public_rooms': {
-                    await get_public_rooms(ws);
-                    break;
-                }
-
-                case 'join_room': {
-                    const { roomId: roomCode } = payload;
-                    try {
-                        const [rows] = await db.execute('SELECT id, status FROM sessions WHERE room_code = ?', [roomCode]);
-                        if (rows.length === 0) {
-                            ws.send(JSON.stringify({ action: 'error', payload: { message: 'La sala no existe.' } }));
-                            return;
-                        }
-                        const room = rows[0];
-                        const roomId = room.id;
-
-                        const [performances] = await db.execute('SELECT * FROM performances WHERE sessio_id = ?', [roomId]);
-
-                        if (performances.length >= MAX_PLAYERS_PER_ROOM) {
-                            ws.send(JSON.stringify({ action: 'error', payload: { message: 'La sala está llena.' } }));
-                            return;
-                        }
-
-                    // Initialize room in memory if it doesn't exist
-                    if (!rooms[roomId]) {
-                        rooms[roomId] = {
-                            id: roomId,
-                            players: []
-                        };
-                    }
+                    const roomId = roomCode;
                     
-                    rooms[roomId].players.push({ ws, username: ws.username, reps: 0 });
+                    rooms[roomId] = {
+                        id: roomId,
+                        players: [{ ws, username: ws.username, reps: 0 }],
+                        isPublic: true,
+                        exercise: exercise_text,
+                        status: 'waiting',
+                        maxPlayers: MAX_PLAYERS_PER_ROOM
+                    };
                     ws.roomId = roomId;
 
                     if (!connectedClients.has(roomId)) {
@@ -265,36 +196,60 @@ function initWebSocket(server) {
                     }
                     connectedClients.get(roomId).add(ws);
 
-                    await db.execute(
-                        'INSERT INTO performances (user_id, sessio_id, won) VALUES ((SELECT id FROM users WHERE username = ?), ?, ?)',
-                        [ws.username, roomId, false]
-                    );
+                    ws.send(JSON.stringify({
+                        action: 'room_created',
+                        payload: { roomId: roomCode }
+                    }));
+                    console.log(`Sala pública ${roomCode} (ID: ${roomId}) creada por ${ws.username}`);
+                    
+                    get_public_rooms();
+                    break;
+                }
 
-                        const [updatedPerformances] = await db.execute(
-                            'SELECT u.username FROM performances p JOIN users u ON p.user_id = u.id WHERE p.sessio_id = ?',
-                            [roomId]
-                        );
-                        const playerUsernames = updatedPerformances.map(p => p.username);
+                case 'get_public_rooms': {
+                    get_public_rooms();
+                    break;
+                }
 
-                        const joinSuccessPayload = {
-                            roomId: roomCode,
-                            players: playerUsernames,
-                            maxPlayers: MAX_PLAYERS_PER_ROOM
-                        };
+                case 'join_room': {
+                    const { roomId: roomCode } = payload;
+                    const room = rooms[roomCode];
 
-                        ws.send(JSON.stringify({ action: 'join_success', payload: joinSuccessPayload }));
+                    if (!room) {
+                        ws.send(JSON.stringify({ action: 'error', payload: { message: 'La sala no existe.' } }));
+                        return;
+                    }
 
-                        broadcastToRoom(roomId, { action: 'player_joined', payload: joinSuccessPayload }, ws);
+                    if (room.players.length >= MAX_PLAYERS_PER_ROOM) {
+                        ws.send(JSON.stringify({ action: 'error', payload: { message: 'La sala está llena.' } }));
+                        return;
+                    }
 
-                        console.log(`Jugador ${ws.username} unido a la sala ${roomCode}. Jugadores: [${playerUsernames.join(', ')}]`);
+                    room.players.push({ ws, username: ws.username, reps: 0 });
+                    ws.roomId = roomCode;
 
-                        if (playerUsernames.length === MAX_PLAYERS_PER_ROOM) {
-                            broadcastToRoom(roomId, { action: 'room_full', payload: { roomId: roomCode } });
-                            console.log(`Sala ${roomCode} llena. Notificando a los jugadores.`);
-                        }
-                    } catch (error) {
-                        console.error('Error al unirse a la sala:', error);
-                        ws.send(JSON.stringify({ action: 'error', payload: { message: 'Error al unirse a la sala.' } }));
+                    if (!connectedClients.has(roomCode)) {
+                        connectedClients.set(roomCode, new Set());
+                    }
+                    connectedClients.get(roomCode).add(ws);
+
+                    const playerUsernames = room.players.map(p => p.username);
+
+                    const joinSuccessPayload = {
+                        roomId: roomCode,
+                        players: playerUsernames,
+                        maxPlayers: MAX_PLAYERS_PER_ROOM
+                    };
+
+                    ws.send(JSON.stringify({ action: 'join_success', payload: joinSuccessPayload }));
+
+                    broadcastToRoom(roomCode, { action: 'player_joined', payload: joinSuccessPayload });
+
+                    console.log(`Jugador ${ws.username} unido a la sala ${roomCode}. Jugadores: [${playerUsernames.join(', ')}]`);
+
+                    if (playerUsernames.length >= MAX_PLAYERS_PER_ROOM) {
+                        broadcastToRoom(roomCode, { action: 'room_full', payload: { roomId: roomCode } });
+                        console.log(`Sala ${roomCode} llena. Notificando a los jugadores.`);
                     }
                     break;
                 }
@@ -306,36 +261,68 @@ function initWebSocket(server) {
                if (room && room.players && typeof reps === 'number' && userId) {
                const player = room.players.find(p => p.ws === ws);
         
-        if (player) {
-            player.reps = reps;
-            
-            // 🚨 CRIDA A LA FUNCIÓ DE PERSISTÈNCIA DE BD
-            checkGlobalRecord(ws, userId, player.username, reps);
-            
-            // Actualitza el Leaderboard de la sala
-            broadcastLeaderboard(roomId);
-        }
-    } else {
-        console.warn(`Dades invàlides per a update_reps. RoomId: ${roomId}, UserId: ${userId}`);
-    }
-    break;
-}
-case 'end_competition': {
-    const { roomId } = payload;
-    
-    // 🚨 CRIDA A LA FUNCIÓ DE FI DE JOC ADAPTADA
-    processCompetitionEnd(roomId);
-    
-    // La funció processCompetitionEnd ja elimina la sala (delete rooms[roomId])
-    
-    break;
-}
+                    if (player) {
+                        player.reps = reps;
+                        
+                        // 🚨 CRIDA A LA FUNCIÓ DE PERSISTÈNCIA DE BD
+                        checkGlobalRecord(ws, userId, player.username, reps);
+                        
+                        // Actualitza el Leaderboard de la sala
+                        broadcastLeaderboard(roomId);
+                    }
+                } else {
+                    console.warn(`Dades invàlides per a update_reps. RoomId: ${roomId}, UserId: ${userId}`);
+                }
+                break;
+            }
+            case 'end_competition': {
+                const { roomId } = payload;
+                
+                // 🚨 CRIDA A LA FUNCIÓ DE FI DE JOC ADAPTADA
+                processCompetitionEnd(roomId);
+                
+                // La funció processCompetitionEnd ja elimina la sala (delete rooms[roomId])
+                
+                break;
+            }
             }
         });
 
         ws.on('close', () => {
             console.log(`Cliente ${ws.username || '(anónimo)'} desconectado`);
             const roomId = ws.roomId;
+            if (roomId && rooms[roomId]) {
+                const wasPublic = rooms[roomId].isPublic;
+                // Remove player from room
+                rooms[roomId].players = rooms[roomId].players.filter(p => p.ws !== ws);
+        
+                // If room is empty, delete it
+                if (rooms[roomId].players.length === 0) {
+                    delete rooms[roomId];
+                    console.log(`Sala ${roomId} eliminada por estar vacía.`);
+                    // Broadcast updated public rooms list if it was a public room
+                    if (wasPublic) {
+                        get_public_rooms();
+                    }
+                } else {
+                    // If room is not empty, broadcast player left message
+                    const playerUsernames = rooms[roomId].players.map(p => p.username);
+                    const playerLeftPayload = {
+                        roomId: roomId,
+                        players: playerUsernames,
+                        maxPlayers: MAX_PLAYERS_PER_ROOM
+                    };
+                    broadcastToRoom(roomId, { action: 'player_left', payload: playerLeftPayload });
+                    console.log(`Jugador ${ws.username} ha salido de la sala ${roomId}. Jugadores: [${playerUsernames.join(', ')}]`);
+                    
+                    // Also update public rooms list if a player leaves a public room
+                    if (wasPublic) {
+                        get_public_rooms();
+                    }
+                }
+            }
+        
+            // Also clean up connectedClients
             if (roomId && connectedClients.has(roomId)) {
                 connectedClients.get(roomId).delete(ws);
                 if (connectedClients.get(roomId).size === 0) {
