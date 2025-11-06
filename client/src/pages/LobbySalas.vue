@@ -97,7 +97,7 @@
 
 <script setup>
 import GlobalLeaderboard from '../components/GlobalLeaderboard.vue';
-import { ref, onMounted, onBeforeUnmount } from "vue";
+import { ref, onMounted, computed, watch } from "vue";
 import { useRouter } from "vue-router";
 import { useWebSocketStore } from "@/stores/websocket";
 
@@ -106,86 +106,63 @@ const wsStore = useWebSocketStore();
 
 const tab = ref("private");
 const loading = ref(false);
-const errorMessage = ref("");
 
 const salaPrivada = ref({ id: "" });
-const salasPublicas = ref([]);
 
-function handleWebSocketMessages() {
-  if (wsStore.socket) {
-    wsStore.socket.onmessage = (event) => {
-      const data = JSON.parse(event.data);
-      console.log('Mensaje del servidor:', data);
+// Computed properties from store
+const salasPublicas = computed(() => wsStore.publicRooms);
+const errorMessage = computed({
+  get: () => wsStore.error,
+  set: (value) => { wsStore.error = value; }
+});
 
-      switch (data.action) {
-        case 'room_created':
-          router.push({ name: "sala", params: { id: data.payload.roomId } });
-          break;
-        case 'join_success':
-          loading.value = false;
-          router.push({ name: "sala", params: { id: data.payload.roomId } });
-          break;
-        case 'player_joined':
-          // Actualizar la lista de salas públicas si alguien se une
-          wsStore.sendMessage({ action: 'get_public_rooms', payload: {} });
-          break;
-        case 'public_rooms_list':
-          salasPublicas.value = data.payload;
-          break;
-        case 'room_full':
-          console.log(`La sala ${data.payload.roomId} está llena. ¡Empezando!`);
-          router.push({ name: "sala", params: { id: data.payload.roomId } });
-          break;
-        case 'error':
-          errorMessage.value = data.payload.message;
-          loading.value = false;
-          break;
-      }
-    };
+// Watch for room state changes to navigate
+watch(() => wsStore.roomState, (newState) => {
+  if (newState && newState.roomId) {
+    loading.value = false;
+    router.push({ name: "room", params: { roomId: newState.roomId } });
   }
-}
+});
 
 function crearSala() {
   loading.value = true;
-  errorMessage.value = "";
+  wsStore.error = null;
   wsStore.sendMessage({ action: 'create_room', payload: {} });
 }
 
 function crearSalaPublica() {
   loading.value = true;
-  errorMessage.value = "";
-  // TODO: Pedir al usuario que elija un ejercicio
+  wsStore.error = null;
   wsStore.sendMessage({ action: 'create_public_room', payload: { exercise_text: 'Ejercicio de prueba' } });
 }
 
 function unirseSalaPrivada() {
   if (!salaPrivada.value.id) {
-    errorMessage.value = "Por favor, introduce un ID de sala.";
+    wsStore.error = "Por favor, introduce un ID de sala.";
     return;
   }
   loading.value = true;
-  errorMessage.value = "";
+  wsStore.error = null;
   wsStore.sendMessage({ action: 'join_room', payload: { roomId: salaPrivada.value.id } });
 }
 
 function unirseSalaPublica(idSala) {
   loading.value = true;
-  errorMessage.value = "";
+  wsStore.error = null;
   wsStore.sendMessage({ action: 'join_room', payload: { roomId: idSala } });
 }
 
-// --- Ciclo de vida ---
+// --- Lifecycle ---
 onMounted(() => {
   loading.value = true;
   const username = localStorage.getItem("username");
   if (!username) {
-    errorMessage.value = "Error de autenticación. Por favor, inicia sesión de nuevo.";
+    wsStore.error = "Error de autenticación. Por favor, inicia sesión de nuevo.";
     loading.value = false;
     return;
   }
 
   const connectAndFetch = () => {
-    handleWebSocketMessages();
     wsStore.sendMessage({ action: 'get_public_rooms', payload: {} });
     loading.value = false;
   };
@@ -197,23 +174,20 @@ onMounted(() => {
 
   wsStore.connect(`ws://localhost:7001?username=${encodeURIComponent(username)}`);
 
-  const connectionTimeout = 5000; // 5 seconds
-  const checkInterval = 100; // 100 ms
-  let timeElapsed = 0;
-
-  const connectionInterval = setInterval(() => {
-    timeElapsed += checkInterval;
-    if (wsStore.isConnected) {
-      clearInterval(connectionInterval);
-      connectAndFetch();
-    } else if (timeElapsed >= connectionTimeout) {
-      clearInterval(connectionInterval);
-      if (!wsStore.isConnected) { // Re-check in case it connected just before timeout
-        errorMessage.value = "No se pudo conectar con el servidor de salas.";
-        loading.value = false;
-      }
+  const connectionTimeout = setTimeout(() => {
+    if (!wsStore.isConnected) {
+      wsStore.error = "No se pudo conectar con el servidor de salas.";
+      loading.value = false;
     }
-  }, checkInterval);
+  }, 5000);
+
+  const unwatch = watch(() => wsStore.isConnected, (isConnected) => {
+    if (isConnected) {
+      clearTimeout(connectionTimeout);
+      connectAndFetch();
+      unwatch(); // Stop watching after connection
+    }
+  });
 });
 </script>
 

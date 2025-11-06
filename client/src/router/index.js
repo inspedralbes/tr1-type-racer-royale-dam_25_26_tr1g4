@@ -4,6 +4,7 @@ import { createRouter, createWebHistory } from "vue-router";
 import LoginView from "@/pages/LoginView.vue";
 import PoseDetector from "@/pages/PoseDetector.vue";
 import LobbySalas from "@/pages/LobbySalas.vue";
+import RoomLobby from "@/pages/RoomLobby.vue";
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -27,6 +28,11 @@ const router = createRouter({
       path: "/lobby",
       name: "lobby",
       component: LobbySalas,
+    },
+    {
+      path: "/room/:roomId",
+      name: "room",
+      component: RoomLobby,
     },
   ],
 });
