@@ -27,6 +27,16 @@ async function createTables() {
     );
   `;
 
+  const exercisesTable = `
+    CREATE TABLE IF NOT EXISTS exercises (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      name VARCHAR(255) NOT NULL UNIQUE,
+      description TEXT,
+      difficulty ENUM('easy', 'medium', 'hard') NOT NULL DEFAULT 'easy',
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+  `;
+
   const routineExercisesTable = `
     CREATE TABLE IF NOT EXISTS routine_exercises (
       routine_id INT NOT NULL,
@@ -57,21 +67,21 @@ async function createTables() {
   `;
 
   //Taula per el leaderboard global
-  const resultatsGlobals = `CREATE TABLE IF NOT EXISTS ResultatsGlobals (
+  const resultatsGlobals = `CREATE TABLE IF NOT EXISTS resultats_globals (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    user_id VARCHAR(255) NOT NULL,
-    username VARCHAR(255) NOT NULL,
+    user_id INT NOT NULL,
     repeticions_totals INT NOT NULL,
-    data_record DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
-);`;
+    data_record DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+  );`;
 
   try {
     await db.execute(usersTable);
+    await db.execute(exercisesTable); // Primero las tablas sin dependencias
     await db.execute(routinesTable);
-    await db.execute(exercisesTable);
-    await db.execute(routineExercisesTable);
-    await db.execute(performancesTable);
-    await db.execute(resultatsGlobals);
+    await db.execute(routineExercisesTable); // Luego las que dependen de otras
+    await db.execute(performancesTable); // Luego las que dependen de otras
+    await db.execute(resultatsGlobals); // Esta no tiene dependencias de FK, el orden es flexible
     console.log("🔄 Tables created or already exist.");
   } catch (err) {
     console.error("❌ Error creating tables:", err);
