@@ -1,4 +1,4 @@
-const db = require('./database');
+const db = require("./database");
 
 async function createTables() {
   const usersTable = `
@@ -14,8 +14,8 @@ async function createTables() {
     );
   `;
 
-  const sessionsTable = `
-    CREATE TABLE IF NOT EXISTS sessions (
+  const routinesTable = `
+    CREATE TABLE IF NOT EXISTS routines (
       id INT AUTO_INCREMENT PRIMARY KEY,
       room_code VARCHAR(8) NOT NULL UNIQUE,
       is_public BOOLEAN NOT NULL DEFAULT FALSE,
@@ -27,39 +27,54 @@ async function createTables() {
     );
   `;
 
+  const routineExercisesTable = `
+    CREATE TABLE IF NOT EXISTS routine_exercises (
+      routine_id INT NOT NULL,
+      exercise_id INT NOT NULL,
+      set_duration_seconds INT NOT NULL COMMENT 'Duración de la serie en segundos',
+      rest_duration_seconds INT NOT NULL COMMENT 'Duración del descanso post-ejercicio en segundos',
+      PRIMARY KEY (routine_id, exercise_id),
+      FOREIGN KEY (routine_id) REFERENCES routines(id) ON DELETE CASCADE,
+      FOREIGN KEY (exercise_id) REFERENCES exercises(id)
+    );
+  `;
+
   const performancesTable = `
     CREATE TABLE IF NOT EXISTS performances (
       id INT AUTO_INCREMENT PRIMARY KEY,
       user_id INT NOT NULL,
-      sessio_id INT NOT NULL,
+      routine_id INT NOT NULL,
+      exercise_id INT NOT NULL,
       reps INT NOT NULL DEFAULT 0,
       score DECIMAL(10, 2) NOT NULL DEFAULT 0.00,
       won BOOLEAN NOT NULL,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (user_id) REFERENCES users(id),
-      FOREIGN KEY (sessio_id) REFERENCES sessions(id),
-      UNIQUE KEY (user_id, sessio_id)
+      FOREIGN KEY (routine_id) REFERENCES routines(id) ON DELETE CASCADE,
+      FOREIGN KEY (exercise_id) REFERENCES exercises(id),
+      UNIQUE KEY uk_user_routine_exercise (user_id, routine_id, exercise_id)
     );
   `;
 
   //Taula per el leaderboard global
-const resultatsGlobals =
-`CREATE TABLE IF NOT EXISTS ResultatsGlobals (
+  const resultatsGlobals = `CREATE TABLE IF NOT EXISTS ResultatsGlobals (
     id INT AUTO_INCREMENT PRIMARY KEY,
     user_id VARCHAR(255) NOT NULL,
     username VARCHAR(255) NOT NULL,
     repeticions_totals INT NOT NULL,
     data_record DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
-);`
+);`;
 
   try {
     await db.execute(usersTable);
-    await db.execute(sessionsTable);
+    await db.execute(routinesTable);
+    await db.execute(exercisesTable);
+    await db.execute(routineExercisesTable);
     await db.execute(performancesTable);
     await db.execute(resultatsGlobals);
-    console.log('🔄 Tables created or already exist.');
+    console.log("🔄 Tables created or already exist.");
   } catch (err) {
-    console.error('❌ Error creating tables:', err);
+    console.error("❌ Error creating tables:", err);
     process.exit(1);
   }
 }
