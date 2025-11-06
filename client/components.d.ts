@@ -12,6 +12,7 @@ export {}
 declare module 'vue' {
   export interface GlobalComponents {
     AppFooter: typeof import('./src/components/AppFooter.vue')['default']
+    GlobalLeaderboard: typeof import('./src/components/GlobalLeaderboard.vue')['default']
     HelloWorld: typeof import('./src/components/HelloWorld.vue')['default']
     PoseDetector: typeof import('./src/components/PoseDetector.vue')['default']
     PoseFeatures: typeof import('./src/components/PoseFeatures.vue')['default']
