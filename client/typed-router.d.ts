@@ -22,6 +22,7 @@ declare module 'vue-router/auto-routes' {
     '/LobbySalas': RouteRecordInfo<'/LobbySalas', '/LobbySalas', Record<never, never>, Record<never, never>>,
     '/LoginView': RouteRecordInfo<'/LoginView', '/LoginView', Record<never, never>, Record<never, never>>,
     '/PoseDetector': RouteRecordInfo<'/PoseDetector', '/PoseDetector', Record<never, never>, Record<never, never>>,
+    '/RoomLobby': RouteRecordInfo<'/RoomLobby', '/RoomLobby', Record<never, never>, Record<never, never>>,
   }
 
   /**
@@ -49,6 +50,10 @@ declare module 'vue-router/auto-routes' {
     }
     'src/pages/PoseDetector.vue': {
       routes: '/PoseDetector'
+      views: never
+    }
+    'src/pages/RoomLobby.vue': {
+      routes: '/RoomLobby'
       views: never
     }
   }
