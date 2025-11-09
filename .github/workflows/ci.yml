@@ -19,7 +19,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20' # Asegúrate de que esta versión coincida con la que usas en tu proyecto
+          node-version: "20" # Asegúrate de que esta versión coincida con la que usas en tu proyecto
 
       - name: Install Server Dependencies
         run: npm install
@@ -42,9 +42,3 @@ jobs:
         run: npm test # Asegúrate de tener scripts de prueba definidos en client/package.json
         working-directory: ./client
         continue-on-error: true
-
-      - name: Build Server Docker Image
-        run: docker build -t tr1-server ./server
-
-      - name: Build Client Docker Image
-        run: docker build -t tr1-client ./client

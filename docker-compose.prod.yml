@@ -5,24 +5,25 @@ services:
     build:
       context: .
       dockerfile: nginx.Dockerfile
+      args:
+        VITE_NODE_ENV: ${VITE_NODE_ENV}
+        VITE_API_URL: ${VITE_API_URL}
+        VITE_SOCKET_URL: ${VITE_SOCKET_URL}
     ports:
       - "80:80"
     depends_on:
-      server:
+      backend:
         condition: service_started
     networks:
       - app-network
     restart: unless-stopped
 
-  server:
+  backend:
     build: ./server
     command: npm start
-    env_file:
-      - ./.env
+    env_file: ./.env
     environment:
-      - NODE_ENV=${NODE_ENV}
-      - PORT=${PORT}
-      - FRONTEND_URL=${FRONTEND_URL}
+      # DB_HOST se define aquí para sobreescribir cualquier valor del .env
       - DB_HOST=db_mysql
     depends_on:
       db_mysql:
@@ -30,18 +31,6 @@ services:
     networks:
       - app-network
     restart: unless-stopped
-
-  # OPTIMIZACIÓN: Este servicio solo existe para construir la imagen del frontend.
-  # Nginx la usará en su Dockerfile (con 'COPY --from=...').
-  # No se ejecutará como un contenedor persistente en producción.
-  client:
-    build:
-      context: ./client
-      dockerfile: Dockerfile
-      args:
-        VITE_NODE_ENV: ${VITE_NODE_ENV}
-        VITE_API_URL: ${VITE_API_URL}
-        VITE_SOCKET_URL: ${VITE_SOCKET_URL}
 
   db_mysql:
     image: mysql:8.0

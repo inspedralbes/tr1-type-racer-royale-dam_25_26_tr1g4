@@ -13,10 +13,10 @@ const loading = ref(false);
 const errorMessage = ref("");
 
 // URL Base del teu backend (ajusta el port si cal)
-const API_BASE_URL = "http://localhost:3000/api/users";
+const API_BASE_URL = import.meta.env.VITE_API_URL || "/api";
 
 async function handleFetch(endpoint, data) {
-  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+  const response = await fetch(`${API_BASE_URL}/users${endpoint}`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -106,7 +106,7 @@ function handleSubmit() {
         <v-card class="elevation-12 pa-4">
           <v-card-title class="text-h5 text-center mb-4">
             FitHub - {{ isRegistering ? "Registre" : "Accés" }}
-          </v-card-title>   
+          </v-card-title>
 
           <v-card-text>
             <v-alert v-if="errorMessage" type="error" class="mb-4">

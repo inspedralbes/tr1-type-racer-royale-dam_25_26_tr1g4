@@ -15,7 +15,7 @@ const corsOptions = {
 };
 app.use(cors(corsOptions));
 app.use(express.json());
-app.use("/api", require("./routes/api"));
+app.use("/api/users", userRoutes);
 
 const connectedClients = new Map();
 const MAX_PLAYERS_PER_ROOM = 4;
@@ -359,7 +359,8 @@ function initWebSocket(server) {
           });
 
           console.log(
-            `Jugador ${ws.username
+            `Jugador ${
+              ws.username
             } unido a la sala ${roomCode}. Jugadores: [${playersInfo
               .map((p) => p.username)
               .join(", ")}]`
@@ -533,7 +534,8 @@ function initWebSocket(server) {
             });
 
             console.log(
-              `Jugador ${ws.username
+              `Jugador ${
+                ws.username
               } ha salido de la sala ${roomId}. Jugadores: [${playersInfo
                 .map((p) => p.username)
                 .join(", ")}]`
@@ -561,15 +563,20 @@ async function connectWithRetry(retries = 5, delay = 5000) {
   for (let i = 0; i < retries; i++) {
     try {
       await createTables();
-      console.log('✅ Database tables created or already exist.');
+      console.log("✅ Database tables created or already exist.");
       return; // Success
     } catch (err) {
-      console.error(`❌ Error connecting to database (attempt ${i + 1}/${retries}):`, err.message);
+      console.error(
+        `❌ Error connecting to database (attempt ${i + 1}/${retries}):`,
+        err.message
+      );
       if (i < retries - 1) {
         console.log(`Retrying in ${delay / 1000} seconds...`);
-        await new Promise(res => setTimeout(res, delay));
+        await new Promise((res) => setTimeout(res, delay));
       } else {
-        throw new Error("❌ Could not connect to the database after multiple retries.");
+        throw new Error(
+          "❌ Could not connect to the database after multiple retries."
+        );
       }
     }
   }
@@ -590,7 +597,5 @@ async function startServer() {
     process.exit(1);
   }
 }
-
-app.use("/api/users", userRoutes);
 
 startServer();
