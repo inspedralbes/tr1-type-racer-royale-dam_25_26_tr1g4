@@ -3,8 +3,8 @@ const db = require("../config/database");
 class Exercise {
   static async create(newExercise) {
     const [result] = await db.execute(
-      "INSERT INTO exercises (name, description, difficulty) VALUES (?, ?, ?)",
-      [newExercise.name, newExercise.description, newExercise.difficulty]
+      "INSERT INTO exercises (name, description, difficulty, tren) VALUES (?, ?, ?, ?)",
+      [newExercise.name, newExercise.description, newExercise.difficulty, newExercise.tren]
     );
     return result.insertId;
   }
@@ -25,6 +25,14 @@ class Exercise {
     const [rows] = await db.execute(
       "SELECT * FROM exercises WHERE difficulty = ?",
       [difficulty]
+    );
+    return rows;
+  }
+
+  static async findByTren(tren) {
+    const [rows] = await db.execute(
+      "SELECT * FROM exercises WHERE tren = ?",
+      [tren]
     );
     return rows;
   }

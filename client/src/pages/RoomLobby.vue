@@ -53,7 +53,7 @@
 
           <v-divider></v-divider>
 
-          <v-card-actions class="pa-4">
+          <v-card-actions class="pa-4" style="align-items: center;">
             <v-btn
               :color="isReady ? 'warning' : 'primary'"
               @click="sendReady"
@@ -64,7 +64,29 @@
               <v-icon left class="mr-2">{{ isReady ? 'mdi-close' : 'mdi-check' }}</v-icon>
               {{ isReady ? 'No estoy listo' : '¡Estoy Listo!' }}
             </v-btn>
+            <!-- Dropdown with exercises (shows tren: 'inferior' or 'superior') -->
             <v-spacer></v-spacer>
+            <v-select
+              v-model="selectedExerciseId"
+              :disabled="!amIOwner"
+              :items="exerciseItems"
+              item-title="label"
+              item-value="id"
+              label="Selecciona exercici"
+              dense
+              hide-details
+              style="max-width: 320px; margin-right: 12px;">
+              <template v-slot:item="{ props, item }">
+                <v-list-item v-bind="props">
+                  <template v-slot:title>
+                    <div :class="item.raw.tren === 'superior' ? 'text-red' : 'text-blue'">
+                      {{ item.raw.label }}
+                    </div>
+                  </template>
+                </v-list-item>
+              </template>
+            </v-select>
+
             <v-btn
               v-if="amIOwner"
               color="success"
@@ -112,6 +134,10 @@ const allPlayersReady = computed(() => {
     return players.value.length > 0 && players.value.every(p => p.ready);
 });
 
+const selectedExerciseId = ref(null);
+
+const exerciseItems = ref([]);
+
 const sendReady = () => {
   wsStore.sendMessage({
     action: 'player_ready',
@@ -120,9 +146,10 @@ const sendReady = () => {
 };
 
 const startGame = () => {
+  // include the selected tren value in the payload (can be 'superior' or 'inferior' or any value stored in exercises.tren)
   wsStore.sendMessage({
     action: 'start_game',
-    payload: { roomId: roomId.value },
+    payload: { roomId: roomId.value, exerciseId: selectedExerciseId.value },
   });
 };
 
@@ -136,6 +163,22 @@ watch(() => wsStore.gameStarting, (isStarting) => {
 onMounted(() => {
   wsStore.gameStarting = false;
   console.log(`Entrando en la sala ${roomId.value}`);
+  // fetch exercises for the dropdown
+  fetch('http://localhost:7001/api/exercises')
+    .then(res => res.json())
+    .then(data => {
+      if (data && data.exercises) {
+        // Map into items with label and tren
+        exerciseItems.value = data.exercises.map(e => ({ 
+          label: e.name,
+          id: e.id,
+          tren: e.tren
+        }));
+        // Preselect first item's tren if exists
+        if (exerciseItems.value.length > 0) selectedExerciseId.value = exerciseItems.value[0].id;
+      }
+    })
+    .catch(err => console.error('Error carregant exercicis:', err));
 });
 
 onBeforeUnmount(() => {

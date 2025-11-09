@@ -33,6 +33,7 @@ async function createTables() {
       name VARCHAR(255) NOT NULL UNIQUE,
       description TEXT,
       difficulty ENUM('easy', 'medium', 'hard') NOT NULL DEFAULT 'easy',
+      tren ENUM('superior', 'inferior') NOT NULL DEFAULT 'superior',
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
   `;
