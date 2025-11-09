@@ -151,7 +151,7 @@ function handleSubmit() {
                 :loading="loading"
                 :disabled="loading"
               >
-                {{ isRegistering ? "Registrar-se" : "Entrar" }}
+                {{ isRegistering ? "Registrar-s e" : "Entrar" }}
               </v-btn>
             </v-form>
           </v-card-text>
