@@ -12,7 +12,7 @@ services:
         condition: service_started
     networks:
       - app-network
-    restart: unless-stopped
+    restart: unless-stopped # Reinicia Nginx si falla.
 
   backend:
     build: ./server
@@ -23,10 +23,10 @@ services:
       - DB_HOST=db_mysql
     depends_on:
       db_mysql:
-        condition: service_healthy
+        condition: service_healthy # Espera a que el healthcheck de MySQL pase.
     networks:
       - app-network
-    restart: unless-stopped
+    restart: unless-stopped # Reinicia el backend si falla.
 
   db_mysql:
     image: mysql:8.0
@@ -38,17 +38,18 @@ services:
     volumes:
       - mysql-data:/var/lib/mysql
     healthcheck:
+      # Se usa CMD-SHELL para poder pasar la variable de entorno con la contraseña de root.
       test:
         [
           "CMD-SHELL",
           "mysqladmin ping -h localhost -u root -p$${MYSQL_ROOT_PASSWORD}",
         ]
-      interval: 20s
-      timeout: 10s
-      retries: 10
+      interval: 20s # Aumentamos el intervalo entre verificaciones.
+      timeout: 10s # Aumentamos el tiempo de espera.
+      retries: 10 # Aumentamos el número de reintentos.
     networks:
       - app-network
-    restart: unless-stopped
+    restart: unless-stopped # Reinicia MySQL si falla.
 
   phpmyadmin:
     image: phpmyadmin/phpmyadmin

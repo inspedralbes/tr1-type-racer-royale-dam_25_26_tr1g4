@@ -5,7 +5,7 @@ import axios from "axios";
 const globalLeaderboard = ref([]);
 const isLoading = ref(true);
 
-// L'URL base de l'API. En producció serà relatiu ('/api') i en desenvolupament el que defineixi VITE_API_URL.
+// L'URL base de l'API. En producció serà relatiu ('/api') i en desenvolupament el que defineixi VITE_API_URL
 const API_BASE_URL = import.meta.env.VITE_API_URL || "/api";
 
 async function fetchGlobalLeaderboard() {

@@ -136,8 +136,10 @@ function analizarSentadilla(keypoints) {
 //J Connectar Websocket
 
 function connectWebScoket() {
+  // Construye la URL del WebSocket de forma dinámica
   const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-  const socketUrl = `${protocol}//${window.location.host}`;
+  const host = window.location.host;
+  const socketUrl = `${protocol}//${host}`;
 
   ws.value = new WebSocket(socketUrl);
 
