@@ -1,0 +1,84 @@
+version: "3.8"
+
+services:
+  nginx:
+    build:
+      context: .
+      dockerfile: nginx.Dockerfile
+    ports:
+      - "80:80"
+    depends_on:
+      server:
+        condition: service_started
+    networks:
+      - app-network
+    restart: unless-stopped
+
+  server:
+    build: ./server
+    command: npm start
+    env_file:
+      - ./.env
+    environment:
+      - NODE_ENV=${NODE_ENV}
+      - PORT=${PORT}
+      - FRONTEND_URL=${FRONTEND_URL}
+      - DB_HOST=db_mysql
+    depends_on:
+      db_mysql:
+        condition: service_healthy
+    networks:
+      - app-network
+    restart: unless-stopped
+
+  # OPTIMIZACIÓN: Este servicio solo existe para construir la imagen del frontend.
+  # Nginx la usará en su Dockerfile (con 'COPY --from=...').
+  # No se ejecutará como un contenedor persistente en producción.
+  client:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+      args:
+        VITE_NODE_ENV: ${VITE_NODE_ENV}
+        VITE_API_URL: ${VITE_API_URL}
+        VITE_SOCKET_URL: ${VITE_SOCKET_URL}
+
+  db_mysql:
+    image: mysql:8.0
+    env_file:
+      - ./.env
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+    volumes:
+      - mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -u root -p$${MYSQL_ROOT_PASSWORD}"]
+      interval: 20s
+      timeout: 10s
+      retries: 10
+    networks:
+      - app-network
+    restart: unless-stopped
+
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    container_name: phpmyadmin
+    restart: always
+    ports:
+      - "8082:80"
+    env_file:
+      - ./.env
+    environment:
+      PMA_HOST: db_mysql
+    depends_on:
+      - db_mysql
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
+
+volumes:
+  mysql-data:

@@ -13,7 +13,7 @@ const loading = ref(false);
 const errorMessage = ref("");
 
 // URL Base del teu backend (ajusta el port si cal)
-const API_BASE_URL = "http://localhost:7001/api/users";
+const API_BASE_URL = "http://localhost:3000/api/users";
 
 async function handleFetch(endpoint, data) {
   const response = await fetch(`${API_BASE_URL}${endpoint}`, {

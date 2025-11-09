@@ -359,8 +359,7 @@ function initWebSocket(server) {
           });
 
           console.log(
-            `Jugador ${
-              ws.username
+            `Jugador ${ws.username
             } unido a la sala ${roomCode}. Jugadores: [${playersInfo
               .map((p) => p.username)
               .join(", ")}]`
@@ -534,8 +533,7 @@ function initWebSocket(server) {
             });
 
             console.log(
-              `Jugador ${
-                ws.username
+              `Jugador ${ws.username
               } ha salido de la sala ${roomId}. Jugadores: [${playersInfo
                 .map((p) => p.username)
                 .join(", ")}]`
@@ -559,10 +557,28 @@ function initWebSocket(server) {
   });
 }
 
+async function connectWithRetry(retries = 5, delay = 5000) {
+  for (let i = 0; i < retries; i++) {
+    try {
+      await createTables();
+      console.log('✅ Database tables created or already exist.');
+      return; // Success
+    } catch (err) {
+      console.error(`❌ Error connecting to database (attempt ${i + 1}/${retries}):`, err.message);
+      if (i < retries - 1) {
+        console.log(`Retrying in ${delay / 1000} seconds...`);
+        await new Promise(res => setTimeout(res, delay));
+      } else {
+        throw new Error("❌ Could not connect to the database after multiple retries.");
+      }
+    }
+  }
+}
+
 async function startServer() {
   try {
-    await createTables();
-    const PORT = 7001;
+    await connectWithRetry();
+    const PORT = 3000;
     const server = app.listen(PORT, () => {
       console.log(
         `Servidor Express escoltant al port http://localhost:${PORT}`
@@ -570,7 +586,7 @@ async function startServer() {
     });
     initWebSocket(server);
   } catch (err) {
-    console.error("Error de connexió a MySQL:", err);
+    console.error("❌ Failed to start server:", err.message);
     process.exit(1);
   }
 }

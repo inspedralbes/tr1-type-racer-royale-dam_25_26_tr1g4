@@ -1,19 +1,16 @@
-# Etapa de construcción
-FROM node:18-alpine AS build
+FROM node:18
 
 WORKDIR /usr/src/app
 
-COPY package*.json ./
-RUN npm install
 
+# Copia los package.json y package-lock.json
+COPY package*.json ./
+
+# Instala todas las dependencias, incluidas las de desarrollo (como nodemon)
+RUN npm install --legacy-peer-deps
+
+
+# Copia el resto de la aplicación
 COPY . .
 
-# Etapa de producción
-FROM node:22-alpine
-
-WORKDIR /usr/src/app
-
-COPY --from=build /usr/src/app .
-
-EXPOSE 7001
-CMD [ "node", "index.js" ]
+EXPOSE 3000

@@ -6,7 +6,7 @@ const globalLeaderboard = ref([]);
 const isLoading = ref(true);
 
 // L'URL de l'API completa (assumint que el teu Express s'executa a :3000 i utilitza un prefix 'api')
-const API_URL = 'http://localhost:7001/api/leaderboard/global'; 
+const API_URL = 'http://localhost:3000/api/leaderboard/global'; 
 
 async function fetchGlobalLeaderboard() {
     isLoading.value = true;

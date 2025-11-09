@@ -172,7 +172,7 @@ onMounted(() => {
     return;
   }
 
-  wsStore.connect(`ws://localhost:7001?username=${encodeURIComponent(username)}`);
+  wsStore.connect(`ws://localhost:3000?username=${encodeURIComponent(username)}`);
 
   const connectionTimeout = setTimeout(() => {
     if (!wsStore.isConnected) {
