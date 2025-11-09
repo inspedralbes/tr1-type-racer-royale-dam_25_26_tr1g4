@@ -19,8 +19,6 @@ services:
 
   backend:
     build: ./server
-    ports:
-      - "8081:8081"
     command: npm start
     env_file: ./.env
     environment:
