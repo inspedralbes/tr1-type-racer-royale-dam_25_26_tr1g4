@@ -148,8 +148,8 @@ function connectWebScoket() {
     //unir-se a la sala
     ws.value.send(
       JSON.stringify({
-        action: " join_room",
-        playloas: {
+        action: "join_room",
+        payload: {
           sessionId: props.sessionId,
           userId: props.userId,
           username: props.username,
@@ -267,7 +267,7 @@ async function loop() {
 onMounted(async () => {
   //J Iniciar connexió amb websocket
 
-  connnectWebSocket();
+  connectWebScoket();
 
   await tf.setBackend("webgl");
   await tf.ready();
