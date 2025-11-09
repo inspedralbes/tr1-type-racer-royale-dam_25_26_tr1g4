@@ -6,15 +6,15 @@ import * as poseDetection from "@tensorflow-models/pose-detection";
 
 //Nous props : dades esencials de l'user/sala
 const props = defineProps({
-  sessionId:String,
-  userId:String,
-username: String,
+  sessionId: String,
+  userId: String,
+  username: String,
 });
 
 //nou estat reactiu de websockets i leaderboard:
 const ws = ref(null);
-const isConnected =ref(false);
-const leaderboard = ref([]);// array de classificació en temps real
+const isConnected = ref(false);
+const leaderboard = ref([]); // array de classificació en temps real
 //-------------------------
 
 const videoRef = ref(null);
@@ -72,20 +72,20 @@ function calcularAngulo(a, b, c) {
   return angulo;
 }
 
-//Enviar  actualització de repeticions: 
+//Enviar  actualització de repeticions:
 function sendRepetitionUpdate(count) {
-    if (!ws.value || ws.value.readyState !== WebSocket.OPEN) return;
+  if (!ws.value || ws.value.readyState !== WebSocket.OPEN) return;
 
-    // Payload que espera el servidor
-    const message = {
-        action: 'update_reps',
-        payload: {
-            userId: props.userId,
-            reps: count // Enviar el nou TOTAL
-        }
-    };
-    ws.value.send(JSON.stringify(message));
-    console.log(`WS: Enviant update_reps: ${count}`);
+  // Payload que espera el servidor
+  const message = {
+    action: "update_reps",
+    payload: {
+      userId: props.userId,
+      reps: count, // Enviar el nou TOTAL
+    },
+  };
+  ws.value.send(JSON.stringify(message));
+  console.log(`WS: Enviant update_reps: ${count}`);
 }
 
 //NOU: Función principal que analiza los keypoints para contar sentadillas y dar feedback.
@@ -128,44 +128,46 @@ function analizarSentadilla(keypoints) {
     repCounter.value++;
     feedbackMsg.value = "¡Bien!";
 
-
     // J NOU: Cridar al servidor WebSocket quan es completa una repetició
-        sendRepetitionUpdate(repCounter.value);
-    }
+    sendRepetitionUpdate(repCounter.value);
+  }
 }
-  
+
 //J Connectar Websocket
 
-function connectWebScoket(){
-  ws.value = new WebSocket(`ws://localhost:3000`);
+function connectWebScoket() {
+  const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+  const socketUrl = `${protocol}//${window.location.host}`;
 
-  ws.value.onopen = () =>{
+  ws.value = new WebSocket(socketUrl);
+
+  ws.value.onopen = () => {
     isConnected.value = true;
-    console.log('WS: Connecció establerta, unint-se a sala');
+    console.log("WS: Connecció establerta, unint-se a sala");
 
-    //unir-se a la sala 
-    ws.value.send(JSON.stringify({
-      action:' join_room',
-      playloas: {
-        sessionId: props.sessionId,
-        userId: props.userId,
-        username:props.username
-      }
-    }));
-  }
+    //unir-se a la sala
+    ws.value.send(
+      JSON.stringify({
+        action: " join_room",
+        playloas: {
+          sessionId: props.sessionId,
+          userId: props.userId,
+          username: props.username,
+        },
+      })
+    );
+  };
   ws.value.onmessage = (event) => {
     const message = JSON.parse(event.data);
 
-    if (message.action === 'leaderboard_update') {
+    if (message.action === "leaderboard_update") {
       //Rep i actualitza el leaderboard
-      console.log('Ws:leaderboard actualitzat');
-
-
-    } 
+      console.log("Ws:leaderboard actualitzat");
+    }
   };
 
   ws.value.onerror = (error) => {
-    console.error('WS:error', error);
+    console.error("WS:error", error);
   };
 }
 
@@ -316,15 +318,20 @@ onBeforeUnmount(() => {
       </div>
 
       <div class="leaderboard-panel">
-        <h4 class="leaderboard-title"> Leaderboard (Sala: {{ props.sessionId }})</h4>
+        <h4 class="leaderboard-title">
+          Leaderboard (Sala: {{ props.sessionId }})
+        </h4>
         <ol class="leaderboard-list">
-            <li v-for="(p, index) in leaderboard" :key="p.username" 
-                :class="{'highlight-self': p.username === props.username}">
-                <strong>{{ index + 1 }}. {{ p.username }}</strong>: {{ p.reps }}
-            </li>
+          <li
+            v-for="(p, index) in leaderboard"
+            :key="p.username"
+            :class="{ 'highlight-self': p.username === props.username }"
+          >
+            <strong>{{ index + 1 }}. {{ p.username }}</strong
+            >: {{ p.reps }}
+          </li>
         </ol>
-    </div>
-
+      </div>
     </div>
   </div>
 </template>
@@ -426,45 +433,44 @@ onBeforeUnmount(() => {
 }
 
 .leaderboard-panel {
-    width: 100%;
-    padding: 16px;
-    background: rgba(0, 0, 0, 0.3);
-    border-radius: 8px;
-    margin-top: 10px;
+  width: 100%;
+  padding: 16px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 8px;
+  margin-top: 10px;
 }
 
 .leaderboard-title {
-    font-size: 1.1rem;
-    margin: 0 0 10px 0;
-    color: #00c8ff;
-    text-align: center;
+  font-size: 1.1rem;
+  margin: 0 0 10px 0;
+  color: #00c8ff;
+  text-align: center;
 }
 
 .leaderboard-list {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-    font-size: 1rem;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  font-size: 1rem;
 }
 
 .leaderboard-list li {
-    padding: 5px 0;
-    display: flex;
-    justify-content: space-between;
-    border-bottom: 1px dashed rgba(255, 255, 255, 0.1);
+  padding: 5px 0;
+  display: flex;
+  justify-content: space-between;
+  border-bottom: 1px dashed rgba(255, 255, 255, 0.1);
 }
 
 .leaderboard-list li:last-child {
-    border-bottom: none;
+  border-bottom: none;
 }
 
 .highlight-self {
-    font-weight: bold;
-    color: #ffc107; /* Color de realç per a l'usuari actual */
-    background-color: rgba(255, 255, 255, 0.1);
-    padding: 5px;
-    margin: 2px 0;
-    border-radius: 4px;
+  font-weight: bold;
+  color: #ffc107; /* Color de realç per a l'usuari actual */
+  background-color: rgba(255, 255, 255, 0.1);
+  padding: 5px;
+  margin: 2px 0;
+  border-radius: 4px;
 }
-
 </style>

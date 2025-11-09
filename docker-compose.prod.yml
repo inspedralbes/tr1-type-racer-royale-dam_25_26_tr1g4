@@ -5,10 +5,6 @@ services:
     build:
       context: .
       dockerfile: nginx.Dockerfile
-      args:
-        VITE_NODE_ENV: ${VITE_NODE_ENV}
-        VITE_API_URL: ${VITE_API_URL}
-        VITE_SOCKET_URL: ${VITE_SOCKET_URL}
     ports:
       - "80:80"
     depends_on:
