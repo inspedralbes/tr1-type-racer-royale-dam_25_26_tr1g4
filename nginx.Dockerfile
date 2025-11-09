@@ -1,10 +1,16 @@
 # Stage 1: Build the Vue.js application
 FROM node:20 AS build-stage
+
+# Declara los argumentos que se pueden pasar durante el build
+ARG VITE_NODE_ENV
+ARG VITE_API_URL
+ARG VITE_SOCKET_URL
+
 WORKDIR /app
 COPY client/package.json ./
 RUN npm install
 COPY client/ ./
-RUN npm run build
+RUN npm run build # Vite usará automáticamente las variables de entorno VITE_*
 
 # Stage 2: Serve the application with Nginx
 FROM nginx:alpine

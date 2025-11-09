@@ -43,6 +43,11 @@ jobs:
             echo "MYSQL_PASSWORD=${{ secrets.MYSQL_PASSWORD }}" >> .env
             echo "MYSQL_DATABASE=${{ secrets.MYSQL_DATABASE }}" >> .env
             echo "MYSQL_USER=${{ secrets.MYSQL_USER }}" >> .env
+            # Las variables VITE_* son cruciales para el build del frontend
+            echo "VITE_NODE_ENV=${{ secrets.NODE_ENV }}" >> .env
+            # Para producción, la URL de la API debe ser relativa para que Nginx la gestione
+            echo "VITE_API_URL=/api" >> .env
+            echo "VITE_SOCKET_URL=/" >> .env
             echo "JWT_SECRET=${{ secrets.JWT_SECRET }}" >> .env
 
             # Run docker-compose for production
