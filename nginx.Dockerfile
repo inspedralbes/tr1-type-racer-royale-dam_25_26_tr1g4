@@ -1,7 +1,7 @@
 # Stage 1: Build the Vue.js application
 FROM node:20 AS build-stage
 
-# Declara los argumentos que se pueden pasar durante el build
+# Deeclara los argumentos que se pueden pasar durante el build
 ARG VITE_NODE_ENV
 ARG VITE_API_URL
 ARG VITE_SOCKET_URL
