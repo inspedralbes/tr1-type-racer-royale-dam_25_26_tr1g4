@@ -10,6 +10,7 @@ export const useWebSocketStore = defineStore('websocket', {
     error: null,
     gameStarting: false,
     username: null,
+    chatMessages: [], // New state for chat messages
   }),
   actions: {
     connect(url) {
@@ -64,9 +65,14 @@ export const useWebSocketStore = defineStore('websocket', {
         case 'player_left':
         case 'players_ready_update':
           if (this.roomState && this.roomState.roomId === data.payload.roomId) {
-            this.roomState = data.payload;
+            this.roomState = { ...this.roomState, ...data.payload };
           }
           break;
+        case 'leaderboard_update':
+            if (this.roomState) {
+                this.roomState.players = data.payload.leaderboard;
+            }
+            break;
         case 'public_rooms_list':
           this.publicRooms = data.payload;
           break;
@@ -75,6 +81,10 @@ export const useWebSocketStore = defineStore('websocket', {
           break;
         case 'room_full':
           console.log(`Room ${data.payload.roomId} is full.`);
+          break;
+        case 'chat_message':
+        case 'new_message':
+          this.chatMessages.push(data.payload);
           break;
         case 'error':
           this.error = data.payload.message;
@@ -93,6 +103,7 @@ export const useWebSocketStore = defineStore('websocket', {
     },
 
     sendMessage(message) {
+      console.log('sendMessage called in websocket store with message:', message);
       if (this.socket && this.isConnected) {
         this.socket.send(JSON.stringify(message));
       } else {

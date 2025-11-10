@@ -494,6 +494,26 @@ function initWebSocket(server) {
 
           break;
         }
+
+        case "send_message": {
+          console.log('Received send_message action with payload:', payload);
+          const { roomId, text } = payload;
+          const room = rooms[roomId];
+          if (room) {
+            const message = {
+              action: "new_message",
+              payload: {
+                username: ws.username,
+                text: text,
+              },
+            };
+            console.log(`Broadcasting new_message to room ${roomId}:`, message);
+            broadcastToRoom(roomId, message);
+          } else {
+            console.log(`Room ${roomId} not found for send_message action.`);
+          }
+          break;
+        }
       }
     });
 
