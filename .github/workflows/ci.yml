@@ -50,8 +50,8 @@ jobs:
             # Credenciales para Adminer (autenticación básica en Nginx)
             # Las variables VITE_* son cruciales para el build del frontend
             echo "VITE_NODE_ENV=${{ secrets.NODE_ENV }}" >> .env
-            echo "VITE_API_URL=${{ secrets.FRONTEND_URL }}" >> .env
-            echo "VITE_SOCKET_URL=${{ secrets.FRONTEND_URL }}" >> .env
+            echo "VITE_API_URL=${{ secrets.FRONTEND_URL }}/api" >> .env
+            echo "VITE_SOCKET_URL=${{ secrets.FRONTEND_URL }}/ws" >> .env
 
 
 
