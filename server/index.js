@@ -1,3 +1,4 @@
+require('dotenv').config();
 const express = require("express");
 const cors = require("cors");
 const { WebSocketServer } = require("ws");
@@ -9,10 +10,27 @@ const { checkGlobalRecord } = require("./ws/gameSocket"); // Ruta al teu mòdul 
 const app = express();
 
 const corsOptions = {
-  origin: "*",
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization", "Accept"],
 };
+
+const nodeEnv = process.env.NODE_ENV;
+
+// En producción, solo permite peticiones desde la URL del frontend definida en .env
+if (nodeEnv === 'production') {
+  console.log('Running in production mode');
+  if (process.env.FRONTEND_URL) {
+    corsOptions.origin = process.env.FRONTEND_URL;
+  } else {
+    console.error("ERROR: FRONTEND_URL is not set in the production environment. CORS will be restricted.");
+    corsOptions.origin = false; // Disallow all origins if not set
+  }
+} else {
+  console.log('Running in development mode');
+  // En desarrollo, permite cualquier origen
+  corsOptions.origin = "*";
+}
+
 app.use(cors(corsOptions));
 app.use(express.json());
 app.use("/api/users", userRoutes);

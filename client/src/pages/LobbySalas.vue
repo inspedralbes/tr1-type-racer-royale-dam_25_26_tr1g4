@@ -100,6 +100,7 @@ import GlobalLeaderboard from '../components/GlobalLeaderboard.vue';
 import { ref, onMounted, computed, watch } from "vue";
 import { useRouter } from "vue-router";
 import { useWebSocketStore } from "@/stores/websocket";
+import { SOCKET_URL } from "@/api";
 
 const router = useRouter();
 const wsStore = useWebSocketStore();
@@ -189,6 +190,9 @@ wsStore.connect(`${socketURL}?username=${encodeURIComponent(username)}`);
       unwatch(); // Stop watching after connection
     }
   });
+
+  const socketURL = (SOCKET_URL || 'ws://localhost:3000/').replace(/^http/, 'ws');
+  wsStore.connect(`${socketURL}?username=${encodeURIComponent(username)}`);
 });
 </script>
 

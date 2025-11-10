@@ -1,20 +1,17 @@
 <script setup>
 import { ref, onMounted } from "vue";
-import axios from "axios";
+import api from "@/api";
 
 const globalLeaderboard = ref([]);
 const isLoading = ref(true);
 
-// L'URL base de l'API. En producció serà relatiu ('/api') i en desenvolupament el que defineixi VITE_API_URL
-const API_BASE_URL = import.meta.env.VITE_API_URL || "/api";
-
 async function fetchGlobalLeaderboard() {
   isLoading.value = true;
   try {
-    const response = await axios.get(`${API_BASE_URL}/leaderboard/global`);
+    const response = await api.get("/leaderboard/global");
 
-    if (response.data.success) {
-      globalLeaderboard.value = response.data.leaderboard;
+    if (response.success) {
+      globalLeaderboard.value = response.leaderboard;
     }
   } catch (error) {
     console.error("Error carregant el Leaderboard global:", error);
