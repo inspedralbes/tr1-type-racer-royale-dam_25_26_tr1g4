@@ -41,11 +41,15 @@ services:
     volumes:
       - mysql-data:/var/lib/mysql
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD}"]
-      interval: 20s
-      timeout: 10s
-      retries: 10
-    command: --default-authentication-plugin=mysql_native_password
+      # Se usa CMD-SHELL para poder pasar la variable de entorno con la contraseña de root.
+      test:
+        [
+          "CMD-SHELL",
+          "mysqladmin ping -h localhost -u root -p$${MYSQL_ROOT_PASSWORD}",
+        ]
+      interval: 20s # Aumentamos el intervalo entre verificaciones.
+      timeout: 10s # Aumentamos el tiempo de espera.
+      retries: 10 # Aumentamos el número de reintentos.
     networks:
       - app-network
     restart: unless-stopped # Reinicia MySQL si falla.
