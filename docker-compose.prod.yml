@@ -21,12 +21,8 @@ services:
     build: ./server
     command: npm start
     environment:
-      DB_HOST: db_mysql
-      MYSQL_USER: ${MYSQL_USER}
-      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
-      MYSQL_DATABASE: ${MYSQL_DATABASE}
-      NODE_ENV: ${NODE_ENV}
-      JWT_SECRET: ${JWT_SECRET}
+      # DB_HOST is set here to override any value from the .env file
+      - DB_HOST=db_mysql
     env_file:
       - ./.env
     depends_on:
@@ -43,6 +39,7 @@ services:
       MYSQL_DATABASE: ${MYSQL_DATABASE}
       MYSQL_USER: ${MYSQL_USER}
       MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      MYSQL_ROOT_HOST: "%" # Allow connections from any host (e.g., other containers)
     env_file:
       - ./.env
     volumes:
