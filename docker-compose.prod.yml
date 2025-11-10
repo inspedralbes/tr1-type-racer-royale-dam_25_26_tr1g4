@@ -41,8 +41,12 @@ services:
     volumes:
       - mysql-data:/var/lib/mysql
     healthcheck:
-      # Se cambia a CMD para evitar problemas con caracteres especiales en la contraseña.
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD}"]
+      # Se usa CMD-SHELL para poder pasar la variable de entorno con la contraseña de root.
+      test:
+        [
+          "CMD-SHELL",
+          "mysqladmin ping -h localhost -u root -p$${MYSQL_ROOT_PASSWORD}",
+        ]
       interval: 20s # Aumentamos el intervalo entre verificaciones.
       timeout: 10s # Aumentamos el tiempo de espera.
       retries: 10 # Aumentamos el número de reintentos.
