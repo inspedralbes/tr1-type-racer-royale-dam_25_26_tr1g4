@@ -24,9 +24,6 @@ services:
     environment:
       # DB_HOST se define aquí para sobreescribir cualquier valor del .env
       - DB_HOST=db_mysql
-      - MYSQL_USER=${MYSQL_USER}
-      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
-      - MYSQL_DATABASE=${MYSQL_DATABASE}
     depends_on:
       db_mysql:
         condition: service_healthy # Espera a que el healthcheck de MySQL pase.
@@ -41,7 +38,6 @@ services:
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
       MYSQL_DATABASE: ${MYSQL_DATABASE}
-      MYSQL_ROOT_HOST: "%" # Permite conexiones root desde cualquier host (incluyendo otros contenedores)
     volumes:
       - mysql-data:/var/lib/mysql
     healthcheck:
