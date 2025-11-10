@@ -52,6 +52,7 @@ jobs:
             echo "VITE_NODE_ENV=${{ secrets.NODE_ENV }}" >> .env
             echo "VITE_API_URL=${{ secrets.FRONTEND_URL }}/api" >> .env
             echo "VITE_SOCKET_URL=${{ secrets.FRONTEND_URL }}/ws" >> .env
+            echo "JWT_SECRET=${{ secrets.JWT_SECRET }}" >> .env
 
 
 
