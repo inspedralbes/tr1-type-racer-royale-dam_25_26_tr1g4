@@ -50,7 +50,6 @@ services:
       interval: 20s # Aumentamos el intervalo entre verificaciones.
       timeout: 10s # Aumentamos el tiempo de espera.
       retries: 10 # Aumentamos el número de reintentos.
-    command: --default-authentication-plugin=mysql_native_password
     networks:
       - app-network
     restart: unless-stopped # Reinicia MySQL si falla.
