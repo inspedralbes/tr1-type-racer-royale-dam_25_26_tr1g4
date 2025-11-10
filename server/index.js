@@ -1,5 +1,4 @@
-// Temporary change to trigger GitHub Actions
-require('dotenv').config();
+require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 const { WebSocketServer } = require("ws");
@@ -18,16 +17,18 @@ const corsOptions = {
 const nodeEnv = process.env.NODE_ENV;
 
 // En producción, solo permite peticiones desde la URL del frontend definida en .env
-if (nodeEnv === 'production') {
-  console.log('Running in production mode');
+if (nodeEnv === "production") {
+  console.log("Running in production mode");
   if (process.env.FRONTEND_URL) {
     corsOptions.origin = process.env.FRONTEND_URL;
   } else {
-    console.error("ERROR: FRONTEND_URL is not set in the production environment. CORS will be restricted.");
+    console.error(
+      "ERROR: FRONTEND_URL is not set in the production environment. CORS will be restricted."
+    );
     corsOptions.origin = false; // Disallow all origins if not set
   }
 } else {
-  console.log('Running in development mode');
+  console.log("Running in development mode");
   // En desarrollo, permite cualquier origen
   corsOptions.origin = "*";
 }
@@ -578,32 +579,12 @@ function initWebSocket(server) {
   });
 }
 
-async function connectWithRetry(retries = 5, delay = 5000) {
-  for (let i = 0; i < retries; i++) {
-    try {
-      await createTables();
-      console.log("✅ Database tables created or already exist.");
-      return; // Success
-    } catch (err) {
-      console.error(
-        `❌ Error connecting to database (attempt ${i + 1}/${retries}):`,
-        err.message
-      );
-      if (i < retries - 1) {
-        console.log(`Retrying in ${delay / 1000} seconds...`);
-        await new Promise((res) => setTimeout(res, delay));
-      } else {
-        throw new Error(
-          "❌ Could not connect to the database after multiple retries."
-        );
-      }
-    }
-  }
-}
-
 async function startServer() {
   try {
-    await connectWithRetry();
+    // Docker's healthcheck ensures the database is ready, so we can connect directly.
+    await createTables();
+    console.log("✅ Database tables created or already exist.");
+
     const PORT = 3000;
     const server = app.listen(PORT, () => {
       console.log(
@@ -612,7 +593,10 @@ async function startServer() {
     });
     initWebSocket(server);
   } catch (err) {
-    console.error("❌ Failed to start server:", err.message);
+    console.error(
+      "❌ Failed to start server or connect to database:",
+      err.message
+    );
     process.exit(1);
   }
 }
