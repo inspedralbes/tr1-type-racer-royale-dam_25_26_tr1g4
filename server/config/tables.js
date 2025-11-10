@@ -1,4 +1,11 @@
 const db = require("./database");
+const fs =require('fs');
+
+const path = require('path');
+
+
+const test_data_sql_path = path.join(__dirname, 'test_data.sql');
+const insert_Test_Data = fs.readFileSync(test_data_sql_path, 'utf8');
 
 async function createTables() {
   const usersTable = `
