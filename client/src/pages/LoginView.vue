@@ -83,7 +83,7 @@ function handleSubmit() {
       <v-col cols="12" sm="8" md="4">
         <v-card class="elevation-12 pa-4">
           <v-card-title class="text-h5 text-center mb-4">
-            FitHub - {{ isRegistering ? "Registre" : "Accés" }}
+            FitHub - test {{ isRegistering ? "Registre" : "Accés" }}
           </v-card-title>
 
           <v-card-text>
