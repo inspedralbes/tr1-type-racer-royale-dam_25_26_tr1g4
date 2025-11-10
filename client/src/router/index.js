@@ -21,6 +21,7 @@ const router = createRouter({
       path: "/sala/:id",
       name: "sala",
       component: PoseDetector,
+      props: route => ({ sessionId: route.params.id, userId: route.query.userId, username: route.query.username }),
       // Aquí podríem afegir lògica per requerir que l'usuari estigui autenticat
       // meta: { requiresAuth: true }
     },

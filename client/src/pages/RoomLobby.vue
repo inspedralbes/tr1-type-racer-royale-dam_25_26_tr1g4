@@ -1,3 +1,4 @@
+
 <template>
   <v-container class="fill-height" fluid>
     <v-row align="center" justify="center">
@@ -49,6 +50,8 @@
                 El botón para empezar la partida se habilitará cuando todos los jugadores estén listos.
             </v-alert>
 
+            <v-divider class="my-4"></v-divider>
+
           </v-card-text>
 
           <v-divider></v-divider>
@@ -81,6 +84,9 @@
         </v-card>
       </v-col>
     </v-row>
+    <div class="chat-panel">
+      <Chat :messages="chatMessages" :username="wsStore.username" @send-message="handleSendMessage" />
+    </div>
   </v-container>
 </template>
 
@@ -88,6 +94,7 @@
 import { ref, computed, onMounted, watch, onBeforeUnmount } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useWebSocketStore } from '@/stores/websocket';
+import Chat from '@/components/Chat.vue';
 
 const route = useRoute();
 const router = useRouter();
@@ -98,6 +105,7 @@ const roomId = ref(route.params.roomId);
 const players = computed(() => wsStore.roomState?.players || []);
 const maxPlayers = computed(() => wsStore.roomState?.maxPlayers || 4);
 const owner = computed(() => wsStore.roomState?.owner || '');
+const chatMessages = computed(() => wsStore.chatMessages);
 
 const amIOwner = computed(() => wsStore.username === owner.value);
 
@@ -126,6 +134,13 @@ const startGame = () => {
   });
 };
 
+const handleSendMessage = (message) => {
+  wsStore.sendMessage({
+    action: 'send_message',
+    payload: { roomId: roomId.value, text: message },
+  });
+};
+
 // Watch for game starting
 watch(() => wsStore.gameStarting, (isStarting) => {
   if (isStarting && wsStore.roomState?.roomId === roomId.value) {
@@ -142,3 +157,13 @@ onBeforeUnmount(() => {
   wsStore.resetRoomState();
 });
 </script>
+
+<style scoped>
+.chat-panel {
+  position: absolute;
+  bottom: 20px;
+  left: 20px;
+  width: 350px;
+  z-index: 10;
+}
+</style>

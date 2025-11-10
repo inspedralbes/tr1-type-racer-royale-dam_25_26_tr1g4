@@ -100,6 +100,7 @@ import GlobalLeaderboard from '../components/GlobalLeaderboard.vue';
 import { ref, onMounted, computed, watch } from "vue";
 import { useRouter } from "vue-router";
 import { useWebSocketStore } from "@/stores/websocket";
+import { SOCKET_URL } from "@/api";
 
 const router = useRouter();
 const wsStore = useWebSocketStore();
@@ -172,8 +173,6 @@ onMounted(() => {
     return;
   }
 
-  wsStore.connect(`ws://localhost:3000?username=${encodeURIComponent(username)}`);
-
   const connectionTimeout = setTimeout(() => {
     if (!wsStore.isConnected) {
       wsStore.error = "No se pudo conectar con el servidor de salas.";
@@ -188,6 +187,9 @@ onMounted(() => {
       unwatch(); // Stop watching after connection
     }
   });
+
+  const socketURL = (SOCKET_URL || 'ws://localhost:3000/').replace(/^http/, 'ws');
+  wsStore.connect(`${socketURL}?username=${encodeURIComponent(username)}`);
 });
 </script>
 

@@ -1,6 +1,7 @@
 <script setup>
 import { ref } from "vue";
 import { useRouter } from "vue-router";
+import api from "@/api";
 
 const router = useRouter();
 
@@ -12,28 +13,6 @@ const isRegistering = ref(false);
 const loading = ref(false);
 const errorMessage = ref("");
 
-// URL Base del teu backend (ajusta el port si cal)
-const API_BASE_URL = "http://localhost:3000/api/users";
-
-async function handleFetch(endpoint, data) {
-  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(data),
-  });
-  const responseData = await response.json();
-  if (!response.ok) {
-    const errorMsg =
-      responseData.message ||
-      `Error del servidor amb l'estat ${response.status}`;
-    throw new Error(errorMsg);
-  }
-
-  return responseData;
-}
-
 async function handleLogin() {
   errorMessage.value = "";
   loading.value = true;
@@ -44,7 +23,7 @@ async function handleLogin() {
       password: password.value,
     };
 
-    const data = await handleFetch("/login", dataToSend);
+    const data = await api.post("/users/login", dataToSend);
 
     // 1. Desem el token i dades de l'usuari
     const { token, username: userFromApi } = data;
@@ -53,10 +32,9 @@ async function handleLogin() {
     console.log(`Benvingut, ${userFromApi}!`);
 
     // 2. Navegació
-    const salaId = "SALA_DEMO_FIT2024";
     router.push({ name: "lobby" });
   } catch (error) {
-    // 3. Gestió d'errors (el missatge ja ve del 'throw new Error' de handleFetch)
+    // 3. Gestió d'errors (el missatge ja ve del 'throw new Error' de l'api)
     errorMessage.value = error.message || "Error de connexió a la xarxa.";
   } finally {
     loading.value = false;
@@ -74,7 +52,7 @@ async function handleRegister() {
       password: password.value,
     };
 
-    const data = await handleFetch("/register", dataToSend);
+    await api.post("/users/register", dataToSend);
 
     // Registre completat. Mostrem un missatge i canviem a la vista de login.
     console.log(`Registre completat per a l'usuari: ${username.value}`);
@@ -106,7 +84,7 @@ function handleSubmit() {
         <v-card class="elevation-12 pa-4">
           <v-card-title class="text-h5 text-center mb-4">
             FitHub - {{ isRegistering ? "Registre" : "Accés" }}
-          </v-card-title>   
+          </v-card-title>
 
           <v-card-text>
             <v-alert v-if="errorMessage" type="error" class="mb-4">
@@ -151,7 +129,7 @@ function handleSubmit() {
                 :loading="loading"
                 :disabled="loading"
               >
-                {{ isRegistering ? "Registrar-se" : "Entrar" }}
+                {{ isRegistering ? "Registrar-s e" : "Entrar" }}
               </v-btn>
             </v-form>
           </v-card-text>
