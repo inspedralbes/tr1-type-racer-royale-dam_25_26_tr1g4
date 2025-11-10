@@ -27,6 +27,8 @@ services:
       MYSQL_DATABASE: ${MYSQL_DATABASE}
       NODE_ENV: ${NODE_ENV}
       JWT_SECRET: ${JWT_SECRET}
+    env_file:
+      - ./.env
     depends_on:
       db_mysql:
         condition: service_healthy # Espera a que el healthcheck de MySQL pase.
@@ -41,6 +43,8 @@ services:
       MYSQL_DATABASE: ${MYSQL_DATABASE}
       MYSQL_USER: ${MYSQL_USER}
       MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    env_file:
+      - ./.env
     volumes:
       - mysql-data:/var/lib/mysql
     healthcheck:
