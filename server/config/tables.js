@@ -1,4 +1,10 @@
 const db = require("./database");
+const fs = require('fs');
+const path = require('path');
+
+const TEST_DATA_SQL_PATH = path.join(__dirname, 'test_data.sql');
+const INSERT_TEST_DATA = fs.readFileSync(TEST_DATA_SQL_PATH, 'utf8');
+
 
 async function createTables() {
   const usersTable = `
@@ -83,7 +89,17 @@ async function createTables() {
     await db.execute(routineExercisesTable); // Luego las que dependen de otras
     await db.execute(performancesTable); // Luego las que dependen de otras
     await db.execute(resultatsGlobals); // Esta no tiene dependencias de FK, el orden es flexible
-    console.log("🔄 Tables created or already exist.");
+    console.log("✅ Tables created or already exist.");
+
+    // Check if there is data in users table to prevent re-inserting
+    const [rows] = await db.execute('SELECT COUNT(*) as count FROM users');
+    if (rows[0].count === 0) {
+      console.log("🌱 No users found. Seeding database with test data...");
+      await db.query(INSERT_TEST_DATA);
+      console.log("✅ Test data inserted successfully.");
+    } else {
+      console.log("ℹ️ Database already contains data. Skipping seeding.");
+    }
   } catch (err) {
     console.error("❌ Error creating tables:", err);
     process.exit(1);
