@@ -10,7 +10,7 @@ const db = require('../config/database');
  */
 async function saveResultToDatabase(userId, username, reps) {
     const sql = `
-        INSERT INTO ResultatsGlobals 
+        INSERT INTO resultats_globals 
         (user_id, username, repeticions_totals) 
         VALUES (?, ?, ?)
     `;
@@ -32,7 +32,7 @@ async function checkGlobalRecord(ws, userId, username, currentReps) {
         SELECT 
             MAX(repeticions_totals) AS best_reps 
         FROM 
-            ResultatsGlobals 
+            resultats_globals 
         WHERE 
             user_id = ?;
     `;

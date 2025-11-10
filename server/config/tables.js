@@ -1,4 +1,11 @@
 const db = require("./database");
+const fs =require('fs');
+
+const path = require('path');
+
+
+const test_data_sql_path = path.join(__dirname, 'test_data.sql');
+const insert_Test_Data = fs.readFileSync(test_data_sql_path, 'utf8');
 
 async function createTables() {
   const usersTable = `
@@ -33,6 +40,7 @@ async function createTables() {
       name VARCHAR(255) NOT NULL UNIQUE,
       description TEXT,
       difficulty ENUM('easy', 'medium', 'hard') NOT NULL DEFAULT 'easy',
+      tren ENUM('superior', 'inferior') NOT NULL DEFAULT 'superior',
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
   `;

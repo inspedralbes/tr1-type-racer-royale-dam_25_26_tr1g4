@@ -136,7 +136,7 @@ function analizarSentadilla(keypoints) {
   
 //J Connectar Websocket
 
-function connectWebScoket(){
+function connectWebSocket(){
   ws.value = new WebSocket(`ws://localhost:3000`);
 
   ws.value.onopen = () =>{
@@ -265,7 +265,7 @@ async function loop() {
 onMounted(async () => {
   //J Iniciar connexió amb websocket
 
-  connnectWebSocket();
+connectWebSocket();
 
   await tf.setBackend("webgl");
   await tf.ready();
