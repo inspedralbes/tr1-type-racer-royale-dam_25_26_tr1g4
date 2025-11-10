@@ -188,8 +188,8 @@ onMounted(() => {
     }
   });
 
-  const socketURL = (SOCKET_URL || 'ws://localhost:3000/').replace(/^http/, 'ws');
-  wsStore.connect(`${socketURL}?username=${encodeURIComponent(username)}`);
+  const socketURL = SOCKET_URL || 'ws://localhost:3000';
+  wsStore.connect(`${socketURL}/?username=${encodeURIComponent(username)}`);
 });
 </script>
 

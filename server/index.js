@@ -1,4 +1,5 @@
 require('dotenv').config();
+const { URL } = require('url');
 const express = require("express");
 const cors = require("cors");
 const { WebSocketServer } = require("ws");
@@ -139,16 +140,27 @@ function get_public_rooms() {
 }
 
 function initWebSocket(server) {
-  wss = new WebSocketServer({ server }); // Assign to the broader scope wss
+  wss = new WebSocketServer({ noServer: true });
 
   console.log(
     "Servidor de WebSockets activo y escuchando en el mismo puerto que Express."
   );
 
-  wss.on("connection", (ws, req) => {
-    const urlParams = new URLSearchParams(req.url.slice(1));
+  server.on('upgrade', (request, socket, head) => {
+    const pathname = request.url.split('?')[0];
 
-    const username = urlParams.get("username");
+    if (pathname === '/ws/' || pathname === '/') {
+      wss.handleUpgrade(request, socket, head, (ws) => {
+        wss.emit('connection', ws, request);
+      });
+    } else {
+      socket.destroy();
+    }
+  });
+
+  wss.on("connection", (ws, req) => {
+    const url = new URL(req.url, `http://${req.headers.host}`);
+    const username = url.searchParams.get('username');
 
     if (!username) {
       ws.close(1008, "Nombre de usuario no proporcionado");
