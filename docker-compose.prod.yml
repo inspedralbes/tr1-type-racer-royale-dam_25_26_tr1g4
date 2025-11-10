@@ -23,6 +23,10 @@ services:
     environment:
       # DB_HOST is set here to override any value from the .env file
       - DB_HOST=db_mysql
+      - MYSQL_USER=${MYSQL_USER}
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
+      - MYSQL_DATABASE=${MYSQL_DATABASE}
     env_file:
       - ./.env
     depends_on:
