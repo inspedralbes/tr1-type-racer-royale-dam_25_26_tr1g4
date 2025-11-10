@@ -173,9 +173,6 @@ onMounted(() => {
     return;
   }
 
-  const socketURL = import.meta.env.VITE_SOCKET_URL || 'ws://localhost:3000/';
-wsStore.connect(`${socketURL}?username=${encodeURIComponent(username)}`);
-
   const connectionTimeout = setTimeout(() => {
     if (!wsStore.isConnected) {
       wsStore.error = "No se pudo conectar con el servidor de salas.";
