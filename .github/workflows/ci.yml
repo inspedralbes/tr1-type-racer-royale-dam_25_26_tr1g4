@@ -63,3 +63,11 @@ jobs:
 
             # Limpia cualquier otra imagen de Docker que no se esté utilizando
             docker image prune -f
+
+            # Diagnostic step to capture backend logs
+            echo "--- DIAGNOSTIC STEP ---"
+            echo "Waiting 15 seconds for containers to settle..."
+            sleep 15
+            echo "Attempting to capture logs from the backend container..."
+            docker logs tr1-type-racer-royale-dam_25_26_tr1g4-backend-1 || echo "DIAGNOSTIC: Could not retrieve logs for backend container. It might have a different name or failed to start."
+            echo "--- END OF DIAGNOSTIC STEP ---"
