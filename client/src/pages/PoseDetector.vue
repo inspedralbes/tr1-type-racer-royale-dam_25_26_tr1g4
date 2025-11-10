@@ -1,8 +1,14 @@
+
 <script setup>
-import { ref, onMounted, onBeforeUnmount } from "vue";
+import { ref, onMounted, onBeforeUnmount, computed, watch } from "vue";
 import * as tf from "@tensorflow/tfjs-core";
 import "@tensorflow/tfjs-backend-webgl";
 import * as poseDetection from "@tensorflow-models/pose-detection";
+import Chat from '@/components/Chat.vue';
+import { useWebSocketStore } from '@/stores/websocket';
+
+// Use the WebSocket store
+const wsStore = useWebSocketStore();
 
 //Nous props : dades esencials de l'user/sala
 const props = defineProps({
@@ -11,10 +17,13 @@ const props = defineProps({
   username: String,
 });
 
-//nou estat reactiu de websockets i leaderboard:
-const ws = ref(null);
-const isConnected = ref(false);
-const leaderboard = ref([]); // array de classificació en temps real
+// Get leaderboard and chat messages from the store
+const leaderboard = computed(() => wsStore.roomState?.players || []);
+const chatMessages = computed(() => wsStore.chatMessages);
+
+watch(chatMessages, (newMessages) => {
+  console.log('Chat messages updated in PoseDetector:', newMessages);
+}, { deep: true });
 //-------------------------
 
 const videoRef = ref(null);
@@ -74,19 +83,25 @@ function calcularAngulo(a, b, c) {
 
 //Enviar  actualització de repeticions:
 function sendRepetitionUpdate(count) {
-  if (!ws.value || ws.value.readyState !== WebSocket.OPEN) return;
-
-  // Payload que espera el servidor
   const message = {
     action: "update_reps",
     payload: {
       userId: props.userId,
-      reps: count, // Enviar el nou TOTAL
+      reps: count,
     },
   };
-  ws.value.send(JSON.stringify(message));
+  wsStore.sendMessage(message);
   console.log(`WS: Enviant update_reps: ${count}`);
 }
+
+// Funció per enviar missatges de chat
+const handleSendMessage = (message) => {
+  console.log('handleSendMessage called in PoseDetector with message:', message);
+  wsStore.sendMessage({
+    action: 'send_message',
+    payload: { roomId: props.sessionId, text: message },
+  });
+};
 
 //NOU: Función principal que analiza los keypoints para contar sentadillas y dar feedback.
 function analizarSentadilla(keypoints) {
@@ -133,46 +148,6 @@ function analizarSentadilla(keypoints) {
   }
 }
 
-//J Connectar Websocket
-
-function connectWebScoket() {
-  // Construye la URL del WebSocket de forma dinámica
-  const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-  const host = window.location.host;
-  const socketUrl = `${protocol}//${host}`;
-
-  ws.value = new WebSocket(socketUrl);
-
-  ws.value.onopen = () => {
-    isConnected.value = true;
-    console.log("WS: Connecció establerta, unint-se a sala");
-
-    //unir-se a la sala
-    ws.value.send(
-      JSON.stringify({
-        action: "join_room",
-        payload: {
-          sessionId: props.sessionId,
-          userId: props.userId,
-          username: props.username,
-        },
-      })
-    );
-  };
-  ws.value.onmessage = (event) => {
-    const message = JSON.parse(event.data);
-
-    if (message.action === "leaderboard_update") {
-      //Rep i actualitza el leaderboard
-      console.log("Ws:leaderboard actualitzat");
-    }
-  };
-
-  ws.value.onerror = (error) => {
-    console.error("WS:error", error);
-  };
-}
-
 // 1) Obrir la càmera
 async function startCamera() {
   try {
@@ -194,9 +169,11 @@ async function startCamera() {
       videoRef.value.srcObject = stream;
       await videoRef.value.play();
     }
+    return true;
   } catch (err) {
     console.error("No s’ha pogut accedir a la càmera:", err);
-    alert("No s’ha pogut accedir a la càmera.");
+    alert("No s’ha pogut accedir a la càmera. La funcionalitat de detecció de poses no estarà disponible.");
+    return false;
   }
 }
 
@@ -267,29 +244,22 @@ async function loop() {
 
 // 4) Inicialització i neteja
 onMounted(async () => {
-  //J Iniciar connexió amb websocket
-
-  connectWebScoket();
-
   await tf.setBackend("webgl");
   await tf.ready();
-  await startCamera();
-  detector = await poseDetection.createDetector(
-    poseDetection.SupportedModels.MoveNet,
-    {
-      modelType: poseDetection.movenet.modelType.SINGLEPOSE_LIGHTNING,
-      enableSmoothing: true,
-    }
-  );
-  loop();
+  const cameraStarted = await startCamera();
+  if (cameraStarted) {
+    detector = await poseDetection.createDetector(
+      poseDetection.SupportedModels.MoveNet,
+      {
+        modelType: poseDetection.movenet.modelType.SINGLEPOSE_LIGHTNING,
+        enableSmoothing: true,
+      }
+    );
+    loop();
+  }
 });
 
 onBeforeUnmount(() => {
-  //J tancar la connexió Websocket
-  if (ws.value) {
-    ws.value.close();
-  }
-
   if (rafId) cancelAnimationFrame(rafId);
   if (currentStream) currentStream.getTracks().forEach((t) => t.stop());
   detector = null;
@@ -334,6 +304,9 @@ onBeforeUnmount(() => {
           </li>
         </ol>
       </div>
+    </div>
+    <div class="chat-panel">
+      <Chat :messages="chatMessages" :username="props.username" @send-message="handleSendMessage" />
     </div>
   </div>
 </template>
@@ -475,4 +448,13 @@ onBeforeUnmount(() => {
   margin: 2px 0;
   border-radius: 4px;
 }
+
+.chat-panel {
+  position: absolute;
+  bottom: 20px;
+  left: 20px;
+  width: 350px;
+  z-index: 10;
+}
 </style>
+
