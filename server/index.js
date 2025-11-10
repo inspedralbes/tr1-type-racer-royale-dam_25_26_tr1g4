@@ -148,9 +148,8 @@ function initWebSocket(server) {
   );
 
   wss.on("connection", (ws, req) => {
-    const urlParams = new URLSearchParams(req.url.slice(1));
-
-    const username = urlParams.get("username");
+    const { searchParams } = new URL(req.url, `http://${req.headers.host}`);
+    const username = searchParams.get("username");
 
     if (!username) {
       ws.close(1008, "Nombre de usuario no proporcionado");
