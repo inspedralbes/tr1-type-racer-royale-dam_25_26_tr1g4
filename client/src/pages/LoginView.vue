@@ -52,7 +52,7 @@ async function handleRegister() {
       password: password.value,
     };
 
-    await api.post("/api/users/register", dataToSend);
+    await api.post("/users/register", dataToSend);
 
     // Registre completat. Mostrem un missatge i canviem a la vista de login.
     console.log(`Registre completat per a l'usuari: ${username.value}`);
