@@ -22,7 +22,7 @@ jobs:
             REPO_URL="https://github.com/${{ github.repository }}.git"
             BRANCH="main"
 
-            rm -rf ${{ secrets.PROJECT_PATH }}
-            git clone -b ${{ secrets.BRANCH }} ${{ secrets.REPO_URL }} ${{ secrets.PROJECT_PATH }}
-            cd ${{ secrets.PROJECT_PATH }}
+            rm -rf "${PROJECT_PATH}"
+            git clone -b "${BRANCH}" "${REPO_URL}" "${PROJECT_PATH}"
+            cd "${PROJECT_PATH}"
             docker compose -f docker-compose.prod.yml up --build -d
