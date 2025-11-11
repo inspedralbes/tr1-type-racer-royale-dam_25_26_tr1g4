@@ -1,9 +1,10 @@
 
 const { WebSocketServer } = require('ws');
-//const Sessio = require('../models/sessio');
+const url = require('url');
+const User = require('../models/user');
 const db = require('../config/database');
 
-//const sessions = {};
+const sessions = {};
 
 /**
  * 1. 💾 Guarda un resultat a la Base de Dades (INSERT MySQL2).
@@ -76,8 +77,33 @@ function initGameSocket(server) {
   const wss = new WebSocketServer({ server });
   console.log(' WebSocket server actiu');
 
-  wss.on('connection', (ws) => {
+  wss.on('connection', async (ws, req) => {
     console.log(' Nou client connectat');
+    const { query } = url.parse(req.url, true);
+    const username = query.username;
+
+    if (!username) {
+      console.log('Connexió sense nom d\'usuari. Tancant.');
+      ws.close();
+      return;
+    }
+
+    try {
+      const user = await User.findByUsername(username);
+      if (user) {
+        ws.userId = user.id;
+        ws.username = user.username;
+        console.log(`Client connectat com a ${username} (ID: ${user.id})`);
+      } else {
+        console.log(`Usuari ${username} no trobat a la BD. Tancant connexió.`);
+        ws.close();
+        return;
+      }
+    } catch (error) {
+      console.error('Error al buscar usuari:', error);
+      ws.close();
+      return;
+    }
 
     ws.on('message', (msg) => {
       try {
@@ -100,9 +126,11 @@ function handleMessage(ws, data) {
   const { action, payload } = data;
 
   switch (action) {
-
-    case 'login':
-      LoggedIn(ws, payload.UserID);
+    case 'create_room':
+      createRoom(ws, false);
+      break;
+    case 'create_public_room':
+      createRoom(ws, true);
       break;
     case 'join_room':
       joinRoom(ws, payload);
@@ -133,6 +161,25 @@ function handleMessage(ws, data) {
             break;
     default:
       ws.send(JSON.stringify({ error: 'Acció desconeguda' }));
+  }
+}
+
+async function createRoom(ws, isPublic) {
+  const roomId = Math.random().toString(36).substring(2, 8).toUpperCase();
+  try {
+    const sql = `
+      INSERT INTO routines (room_code, is_public) 
+      VALUES (?, ?)
+    `;
+    await db.execute(sql, [roomId, isPublic]);
+    console.log(`[DB] Room ${roomId} created in routines table.`);
+    
+    // Automatically join the user to the created room
+    joinRoom(ws, { roomId: roomId });
+
+  } catch (err) {
+    console.error('Error creating room in DB:', err);
+    ws.send(JSON.stringify({ error: 'Error creating room' }));
   }
 }
 /**
@@ -223,54 +270,41 @@ async function processCompetitionEnd(sessionId) {
 }
 
 
-async function LoggedIn(ws, userId) {
-  try {
-    const newSessio = await Sessio.create({
-      user_id: userId,
-    });
-    ws.sessionId = newSessio.id;
-    console.log(`User ${userId} logged in and session ${ws.sessionId} created`);
-  } catch (err) {
-    console.error('Error creating session:', err);
-  }
-}
+function joinRoom(ws, { roomId }) {
+  const sessionId = roomId;
 
-function login(ws, userId) {
-  ws.userId = userId;
-  console.log(`User ${userId} logged in`);
-}
-
-function joinRoom(ws, { sessionId, username }) {
   if (!sessions[sessionId]) {
-    // 🚨 NOVA ESTRUCTURA DE LA SALA: Conté l'array de clients i l'objecte de participants (leaderboard)
     sessions[sessionId] = {
       clients: [], 
       participants: {} 
     };
   }
 
-  // 1. Afegir el client al nou array de clients (per broadcast)
+  // TODO: Check if room is full before joining
+
   sessions[sessionId].clients.push(ws);
   
-  // 2. Afegir l'usuari a la llista de participants amb 0 repeticions
-  sessions[sessionId].participants[userId] = {
-    username: username,
+  sessions[sessionId].participants[ws.userId] = {
+    username: ws.username,
     reps: 0, 
     ws: ws 
   };
 
-  // Associar dades clau al socket (crucial pel funcionament d''update_reps')
   ws.sessionId = sessionId;
-  ws.userId = userId;
-  ws.username = username;
 
-  console.log(`${username} s’ha unit a la sala ${sessionId}`);
+  console.log(`${ws.username} s’ha unit a la sala ${sessionId}`);
   
-  // Notificació de sistema (utilitza la funció adaptada)
-  broadcastMessage(sessionId, { system: true, message: `${username} s’ha unit a la sala.` });
+  broadcastMessage(sessionId, { action: 'new_message', payload: { username: 'System', text: `${ws.username} has joined the room.` } });
   
-  // 3. Enviar el leaderboard inicial
   broadcastLeaderboard(sessionId); 
+
+  ws.send(JSON.stringify({
+    action: 'join_success',
+    payload: {
+      roomId: sessionId,
+      players: Object.values(sessions[sessionId].participants).map(p => ({username: p.username, reps: p.reps})),
+    }
+  }));
 }
 
 function leaveRoom(ws, { sessionId }) {

@@ -41,10 +41,6 @@
 
             <v-window-item value="public">
               <v-card-text class="pa-5">
-                <v-btn @click="crearSalaPublica" block color="secondary" size="large" class="mb-6" :loading="loading">
-                  Crear Sala Pública
-                </v-btn>
-                <v-divider class="mb-6"></v-divider>
                 <h3 class="mb-4">Salas Públicas Disponibles</h3>
 
                 <v-list lines="two">
@@ -76,6 +72,13 @@
                 >
                   No hay salas públicas disponibles en este momento.
                 </v-alert>
+
+                <v-divider class="my-6"></v-divider>
+
+                <h3 class="mb-4">O Crear una Sala Pública</h3>
+                <v-btn @click="crearSalaPublica" block color="secondary" size="large" class="mb-6" :loading="loading">
+                  Crear Sala Pública
+                </v-btn>
               </v-card-text>
             </v-window-item>
           </v-window>
@@ -134,7 +137,7 @@ function crearSala() {
 function crearSalaPublica() {
   loading.value = true;
   wsStore.error = null;
-  wsStore.sendMessage({ action: 'create_public_room', payload: { exercise_text: 'Ejercicio de prueba' } });
+  wsStore.sendMessage({ action: 'create_public_room', payload: {} });
 }
 
 function unirseSalaPrivada() {

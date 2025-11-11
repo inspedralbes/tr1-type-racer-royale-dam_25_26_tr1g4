@@ -233,17 +233,6 @@ function initWebSocket(server) {
         case "create_public_room": {
           const { exercise_text } = payload;
 
-          if (!exercise_text) {
-            ws.send(
-              JSON.stringify({
-                action: "error",
-                payload: { message: "El texto del ejercicio es obligatorio." },
-              })
-            );
-
-            return;
-          }
-
           const roomCode = generateRoomId();
 
           const roomId = roomCode;

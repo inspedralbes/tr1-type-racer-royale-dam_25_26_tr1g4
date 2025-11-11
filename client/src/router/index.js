@@ -18,10 +18,15 @@ const router = createRouter({
     {
       // RUTA DE LA SALA DE VÍDEO / DETECTOR DE POSE
       // És una 'Page' i carregarà els Keypoints i PoseFeatures
-      path: "/sala/:id",
+      path: "/sala/:id/:exercise",
       name: "sala",
       component: PoseDetector,
-      props: route => ({ sessionId: route.params.id, userId: route.query.userId, username: route.query.username }),
+      props: route => ({ 
+        sessionId: route.params.id, 
+        exercise: route.params.exercise,
+        userId: route.query.userId, 
+        username: route.query.username 
+      }),
       // Aquí podríem afegir lògica per requerir que l'usuari estigui autenticat
       // meta: { requiresAuth: true }
     },

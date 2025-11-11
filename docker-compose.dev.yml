@@ -23,6 +23,9 @@ services:
     restart: on-failure
     ports:
       - "3000:3000"
+    volumes:
+      - ./server:/usr/src/app
+      - /usr/src/app/node_modules
     environment:
       - DB_HOST=db_mysql
       - MYSQL_USER=root

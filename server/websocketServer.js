@@ -85,16 +85,12 @@ wss.on('connection', (ws, req) => {
             }
 
             case 'create_public_room': {
-                const { exercise_text } = payload;
-                if (!exercise_text) {
-                    ws.send(JSON.stringify({ action: 'error', payload: { message: 'El texto del ejercicio es obligatorio.' } }));
-                    return;
-                }
+                const { exercise_text } = payload; // Can be undefined
                 const roomCode = generateRoomId();
                 try {
                     const [result] = await db.execute(
                         'INSERT INTO sessions (room_code, is_public, exercise_text, status) VALUES (?, ?, ?, ?)',
-                        [roomCode, true, exercise_text, 'waiting']
+                        [roomCode, true, exercise_text || null, 'waiting']
                     );
                     const roomId = result.insertId;
                     ws.roomId = roomId;

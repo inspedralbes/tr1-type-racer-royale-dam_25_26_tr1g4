@@ -1,90 +1,38 @@
 <script setup>
-import { ref, onMounted, onBeforeUnmount, computed, watch } from "vue";
-import * as tf from "@tensorflow/tfjs-core";
-import "@tensorflow/tfjs-backend-webgl";
-import * as poseDetection from "@tensorflow-models/pose-detection";
+import { ref, onMounted, onBeforeUnmount, computed } from "vue";
 import Chat from "@/components/Chat.vue";
 import { useWebSocketStore } from "@/stores/websocket";
+import { PoseDetectionService } from "@/services/PoseDetectionService";
+import { exerciseAnalyzers } from "@/logic/exerciseAnalyzers";
 
-// Use the WebSocket store
+// WebSocket Store
 const wsStore = useWebSocketStore();
 
-//Nous props : dades esencials de l'user/sala
+// Component Props
 const props = defineProps({
   sessionId: String,
   userId: String,
   username: String,
+  exercise: String, // The name of the exercise from the route
 });
 
-// Get leaderboard and chat messages from the store
+// WebSocket related computed properties
 const leaderboard = computed(() => wsStore.roomState?.players || []);
 const chatMessages = computed(() => wsStore.chatMessages);
 
-watch(
-  chatMessages,
-  (newMessages) => {
-    console.log("Chat messages updated in PoseDetector:", newMessages);
-  },
-  { deep: true }
-);
-//-------------------------
-
+// Refs for video and canvas elements
 const videoRef = ref(null);
 const canvasRef = ref(null);
 
-const repCounter = ref(0); // Contador de repeticiones
-const exerciseState = ref("up"); // Estado actual del ejercicio ('up' o 'down')
-const feedbackMsg = ref("¡Prepárate!"); // Feedback en tiempo real
+// Exercise state
+const repCounter = ref(0);
+const exerciseState = ref("up"); // 'up' or 'down'
+const feedbackMsg = ref("¡Prepárate!");
 
-let currentStream = null; // guardem l'stream actiu per poder-lo aturar
-let detector = null; // detector MoveNet
-let rafId = null; // id de requestAnimationFrame del bucle
+// Pose detection service instance
+let poseDetectionService = null;
 
-const keypointNames = [
-  "nose",
-  "left_eye",
-  "right_eye",
-  "left_ear",
-  "right_ear",
-  "left_shoulder",
-  "right_shoulder",
-  "left_elbow",
-  "right_elbow",
-  "left_wrist",
-  "right_wrist",
-  "left_hip",
-  "right_hip",
-  "left_knee",
-  "right_knee",
-  "left_ankle",
-  "right_ankle",
-];
-
-// Funció auxiliar per obtenir un keypoint pel seu nom
-function getKp(keypoints, name) {
-  const index = keypointNames.indexOf(name);
-  if (index === -1 || !keypoints || keypoints.length <= index) return null;
-
-  const kp = keypoints[index];
-  if (kp && (kp.score ?? 1) > 0.3) {
-    return kp;
-  }
-  return null;
-}
-
-//NOU: Calcula el ángulo (en grados) formado por tres puntos (articulaciones).
-function calcularAngulo(a, b, c) {
-  if (!a || !b || !c) return null;
-  const rad =
-    Math.atan2(c.y - b.y, c.x - b.x) - Math.atan2(a.y - b.y, a.x - b.x);
-  let angulo = Math.abs((rad * 180.0) / Math.PI);
-  if (angulo > 180) {
-    angulo = 360 - angulo;
-  }
-  return angulo;
-}
-
-//Enviar  actualització de repeticions:
+// --- WebSocket Functions ---
 function sendRepetitionUpdate(count) {
   const message = {
     action: "update_reps",
@@ -94,183 +42,59 @@ function sendRepetitionUpdate(count) {
     },
   };
   wsStore.sendMessage(message);
-  console.log(`WS: Enviant update_reps: ${count}`);
 }
 
-// Funció per enviar missatges de chat
 const handleSendMessage = (message) => {
-  console.log(
-    "handleSendMessage called in PoseDetector with message:",
-    message
-  );
   wsStore.sendMessage({
     action: "send_message",
     payload: { roomId: props.sessionId, text: message },
   });
 };
 
-//NOU: Función principal que analiza los keypoints para contar sentadillas y dar feedback.
-function analizarSentadilla(keypoints) {
-  const shoulder = getKp(keypoints, "left_shoulder");
-  const hip = getKp(keypoints, "left_hip");
-  const knee = getKp(keypoints, "left_knee");
-  const ankle = getKp(keypoints, "left_ankle");
+// --- Exercise Logic Callbacks ---
+const handleRepetition = () => {
+  repCounter.value++;
+  sendRepetitionUpdate(repCounter.value);
+};
 
-  if (!shoulder || !hip || !knee || !ankle) {
-    feedbackMsg.value = "No te veo bien";
-    return;
-  }
+const handleFeedback = (message) => {
+  feedbackMsg.value = message;
+};
 
-  const anguloRodilla = calcularAngulo(hip, knee, ankle);
-  const anguloEspalda = calcularAngulo(shoulder, hip, knee);
-
-  if (anguloRodilla === null || anguloEspalda === null) return;
-
-  const UMBRAL_ARRIBA = 160;
-  const UMBRAL_ABAJO = 100;
-  const UMBRAL_ESPALDA = 150;
-
-  // LÓGICA DE FEEDBACK
-  if (exerciseState.value === "down" && anguloEspalda < UMBRAL_ESPALDA) {
-    feedbackMsg.value = "¡Espalda recta!";
-  } else if (exerciseState.value === "down") {
-    feedbackMsg.value = "¡Sube!";
-  } else if (exerciseState.value === "up" && anguloRodilla > UMBRAL_ARRIBA) {
-    feedbackMsg.value = "Baja...";
-  }
-
-  // LÓGICA de ESTADO (CONTADOR)
-  if (anguloRodilla < UMBRAL_ABAJO && exerciseState.value === "up") {
-    exerciseState.value = "down";
-  }
-
-  if (anguloRodilla > UMBRAL_ARRIBA && exerciseState.value === "down") {
-    exerciseState.value = "up";
-    repCounter.value++;
-    feedbackMsg.value = "¡Bien!";
-
-    // J NOU: Cridar al servidor WebSocket quan es completa una repetició
-    sendRepetitionUpdate(repCounter.value);
-  }
-}
-
-// 1) Obrir la càmera
-async function startCamera() {
-  try {
-    if (currentStream) {
-      currentStream.getTracks().forEach((t) => t.stop());
-      currentStream = null;
+// --- Main Pose Estimation Handler ---
+const handlePoseEstimate = (keypoints) => {
+  if (keypoints) {
+    const analyzer = exerciseAnalyzers[props.exercise];
+    if (analyzer) {
+      analyzer(keypoints, exerciseState, handleRepetition, handleFeedback);
+    } else {
+      feedbackMsg.value = `Ejercicio '${props.exercise}' no reconocido.`;
     }
-    // Demanem 16:9, com a la conversa anterior
-    const stream = await navigator.mediaDevices.getUserMedia({
-      video: {
-        facingMode: "user",
-        width: { ideal: 1280 },
-        height: { ideal: 720 },
-      },
-      audio: false,
-    });
-    currentStream = stream;
-    if (videoRef.value) {
-      videoRef.value.srcObject = stream;
-      await videoRef.value.play();
-    }
-    return true;
-  } catch (err) {
-    console.error("No s’ha pogut accedir a la càmera:", err);
-    alert(
-      "No s’ha pogut accedir a la càmera. La funcionalitat de detecció de poses no estarà disponible."
-    );
-    return false;
-  }
-}
-
-// 2) Dibuixar esquelet (punts + línies) al canvas
-function drawSkeleton(ctx, keypoints) {
-  ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-  const pairs = poseDetection.util.getAdjacentPairs(
-    poseDetection.SupportedModels.MoveNet
-  );
-  ctx.lineWidth = 3;
-  ctx.strokeStyle = "#00c8ff";
-
-  // Dibuixem línies
-  for (const [i, j] of pairs) {
-    const a = keypoints[i],
-      b = keypoints[j];
-    if (!a || !b) continue;
-    if ((a.score ?? 1) < 0.3 || (b.score ?? 1) < 0.3) continue;
-    ctx.beginPath();
-    ctx.moveTo(a.x, a.y);
-    ctx.lineTo(b.x, b.y);
-    ctx.stroke();
-  }
-
-  // Dibuixem punts
-  ctx.fillStyle = "#ffffff"; // Punts blancs
-  for (const kp of keypoints) {
-    if ((kp.score ?? 1) < 0.3) continue;
-    ctx.beginPath();
-    ctx.arc(kp.x, kp.y, 4, 0, Math.PI * 2);
-    ctx.fill();
-  }
-}
-
-// 3) Bucle principal: estima la pose i dibuixa
-async function loop() {
-  const video = videoRef.value;
-  const canvas = canvasRef.value;
-  if (!video || !canvas || !detector) return;
-
-  // Aquesta lògica és clau: ajusta la RESOLUCIÓ del canvas
-  // a la resolució REAL del vídeo. El CSS s'encarrega d'ESCALAR-HO.
-  if (
-    canvas.width !== video.videoWidth ||
-    canvas.height !== video.videoHeight
-  ) {
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-  }
-
-  const poses = await detector.estimatePoses(video, {
-    maxPoses: 1,
-    flipHorizontal: true,
-  });
-
-  const ctx = canvas.getContext("2d");
-  if (poses[0]?.keypoints) {
-    const kps = poses[0].keypoints;
-    drawSkeleton(ctx, kps);
-    analizarSentadilla(kps);
   } else {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
     feedbackMsg.value = "Buscando persona...";
   }
+};
 
-  rafId = requestAnimationFrame(loop);
-}
-
-// 4) Inicialització i neteja
+// --- Lifecycle Hooks ---
 onMounted(async () => {
-  await tf.setBackend("webgl");
-  await tf.ready();
-  const cameraStarted = await startCamera();
-  if (cameraStarted) {
-    detector = await poseDetection.createDetector(
-      poseDetection.SupportedModels.MoveNet,
-      {
-        modelType: poseDetection.movenet.modelType.SINGLEPOSE_LIGHTNING,
-        enableSmoothing: true,
-      }
-    );
-    loop();
+  if (videoRef.value && canvasRef.value) {
+    poseDetectionService = new PoseDetectionService(videoRef.value, canvasRef.value);
+    
+    poseDetectionService.onPoseEstimate = handlePoseEstimate;
+
+    await poseDetectionService.initialize();
+    const cameraStarted = await poseDetectionService.startCamera();
+    
+    if (cameraStarted) {
+      poseDetectionService.loop();
+    }
   }
 });
 
 onBeforeUnmount(() => {
-  if (rafId) cancelAnimationFrame(rafId);
-  if (currentStream) currentStream.getTracks().forEach((t) => t.stop());
-  detector = null;
+  if (poseDetectionService) {
+    poseDetectionService.stop();
+  }
 });
 </script>
 
