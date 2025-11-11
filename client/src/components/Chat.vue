@@ -1,9 +1,9 @@
 <template>
   <div class="chat-container">
     <div class="messages-container" ref="messagesContainer">
-      <div 
-        v-for="(msg, index) in messages" 
-        :key="index" 
+      <div
+        v-for="(msg, index) in messages"
+        :key="index"
         class="message"
         :class="{ 'my-message': msg.username === username }"
       >
@@ -13,8 +13,7 @@
     <v-text-field
       v-model="newMessage"
       @keyup.enter="sendMessage"
-      label="Escribe un mensaje..."
-      dense
+      density="compact"
       outlined
       hide-details
       class="mt-2 chat-input"
@@ -25,7 +24,7 @@
 </template>
 
 <script setup>
-import { ref, watch, nextTick } from 'vue';
+import { ref, watch, nextTick } from "vue";
 
 const props = defineProps({
   messages: {
@@ -38,24 +37,27 @@ const props = defineProps({
   },
 });
 
-const emit = defineEmits(['send-message']);
+const emit = defineEmits(["send-message"]);
 
-const newMessage = ref('');
+const newMessage = ref("");
 const messagesContainer = ref(null);
 
 const sendMessage = () => {
-  console.log('Chat.vue: sendMessage triggered');
+  console.log("Chat.vue: sendMessage triggered");
   if (newMessage.value.trim()) {
-    console.log('Chat.vue: Emitting send-message event with:', newMessage.value);
-    emit('send-message', newMessage.value);
-    newMessage.value = '';
+    console.log(
+      "Chat.vue: Emitting send-message event with:",
+      newMessage.value
+    );
+    emit("send-message", newMessage.value);
+    newMessage.value = "";
   }
 };
 
 watch(
   () => props.messages,
   async (newMessages) => {
-    console.log('Chat.vue: Messages prop updated:', newMessages);
+    console.log("Chat.vue: Messages prop updated:", newMessages);
     await nextTick();
     if (messagesContainer.value) {
       messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight;
@@ -67,93 +69,136 @@ watch(
 
 <style scoped>
 .chat-container {
+  background: rgba(17, 17, 17, 0.4); /* Fons fosc semi-transparent */
+  backdrop-filter: blur(10px); /* Efecte vidre glaçat */
+  -webkit-backdrop-filter: blur(10px); /* Suport per a Safari */
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+
   display: flex;
   flex-direction: column;
-  height: 300px;
-  border-radius: 8px;
-  background-color: rgba(245, 245, 245, 0.8); /* Light grey background with some transparency */
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  padding: 15px;
-  color: #333; /* Dark text color */
+  height: 320px; /* Una mica més alt */
+  padding: 16px;
+  color: #f0f0f0; /* Text clar per defecte */
 }
 
 .messages-container {
   flex-grow: 1;
   overflow-y: auto;
-  margin-bottom: 10px;
-  background-color: rgba(255, 255, 255, 0.8); /* White background for messages with some transparency */
-  padding: 10px;
-  border-radius: 5px;
-  border: 1px solid #e0e0e0;
+  padding-right: 8px; /* Espai per a la barra de scroll */
   display: flex;
   flex-direction: column;
+  gap: 8px;
 }
 
-/* Custom scrollbar for Webkit browsers */
+/* Barra de scroll personalitzada per a un look modern */
 .messages-container::-webkit-scrollbar {
-  width: 8px;
+  width: 6px;
 }
 
 .messages-container::-webkit-scrollbar-track {
-  background: #f1f1f1;
-  border-radius: 10px;
+  background: transparent;
 }
 
 .messages-container::-webkit-scrollbar-thumb {
-  background: #ccc;
-  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 3px;
 }
 
 .messages-container::-webkit-scrollbar-thumb:hover {
-  background: #aaa;
+  background: rgba(255, 255, 255, 0.5);
 }
 
 .message {
-  margin-bottom: 8px;
   padding: 8px 12px;
-  border-radius: 10px;
-  background-color: #e9e9e9; /* Slightly darker background for individual messages */
+  border-radius: 8px;
+  background-color: rgba(40, 40, 40, 0.6); /* Fons de missatge subtil */
   word-wrap: break-word;
-  max-width: 80%;
+  max-width: 90%;
   align-self: flex-start;
-  border: 1px solid #ddd;
+  line-height: 1.4;
 }
 
 .message.my-message {
-  background-color: #dcf8c6; /* WhatsApp-like green for own messages */
-}
-
-.message:last-child {
-  margin-bottom: 0;
+  background-color: rgba(0, 100, 200, 0.5); /* Blau per als missatges propis */
+  align-self: flex-end;
 }
 
 .font-weight-bold {
-  color: #1976D2; /* Vuetify's default primary blue color */
+  font-weight: 600;
+  color: #00c8ff; /* Color cian per al nom d'usuari */
 }
+
+.my-message .font-weight-bold {
+  color: #cceeff; /* Un blau més clar per al nom propi */
+}
+
+/* * ESTILOS MEJORADOS PARA EL CAMPO DE TEXTO DEL CHAT 
+*/
 
 .chat-input {
-  background-color: #fff;
-  border-radius: 5px;
+  margin-top: 12px;
+  --v-field-background: rgba(0, 0, 0, 0.2) !important;
+  --v-field-color: #ffffff !important;
+  --v-field-label-color: rgba(255, 255, 255, 0.6) !important;
+  --v-field-border-color: rgba(255, 255, 255, 0.2) !important;
+  --v-field-border-opacity: 1 !important;
+  --v-field-border-width: 1px !important;
+  transition: all 0.3s ease; /* Suaviza las transiciones */
 }
 
-/* Adjust Vuetify's input specific styles for light theme */
-.v-text-field--outlined fieldset {
-  border-color: #ccc !important;
+/* Animación al enfocar el input */
+.chat-input :deep(.v-field--focused) {
+  --v-field-border-color: #00c8ff !important; /* Borde cian al enfocar */
+  box-shadow: 0 0 8px rgba(0, 200, 255, 0.5); /* Sombra luminosa */
 }
 
-.v-text-field .v-input__control .v-input__slot {
-  background-color: #fff !important;
+/* Regla principal para forzar la altura */
+.chat-input :deep(.v-field) {
+  border-radius: 8px !important;
+  min-height: 36px !important;
+  height: 36px !important;
+  transition: all 0.3s ease; /* Transición para cambios de estilo */
 }
 
-.v-text-field label.v-label {
-  color: #757575 !important;
+/* Ajusta el padding de l'input intern */
+.chat-input :deep(.v-field__input) {
+  padding-top: 2px !important; /* Redueix el padding superior */
+  padding-bottom: 2px !important; /* Redueix el padding inferior */
+  min-height: auto !important; /* Permet que l'altura es redueixi */
+  color: #ffffff !important; /* Color del texto cuando se escribe */
+  caret-color: #ffffff !important; /* Color del cursor (blanco) */
 }
 
-.v-text-field input {
-  color: #333 !important;
+/* Ajusta el padding de la label per centrar-la */
+.chat-input :deep(.v-label.v-field-label) {
+  margin-top: -3px !important;
+  transition: all 0.3s ease; /* Transición para la label */
 }
 
-.v-text-field .v-input__append-inner .v-icon {
-  color: #1976D2 !important;
+/* Opcional: Centrar l'icona amb la nova altura */
+.chat-input :deep(.v-field__append-inner) {
+  padding-top: 6px !important; /* Ajusta això si l'icona queda descentrada */
+}
+
+/* Arrodoniment de les cantonades del outline */
+.chat-input :deep(.v-field__outline__start) {
+  border-radius: 8px 0 0 8px !important;
+}
+.chat-input :deep(.v-field__outline__end) {
+  border-radius: 0 8px 8px 0 !important;
+}
+
+/* Estils de l'icona d'enviar */
+.chat-input :deep(.mdi-send) {
+  color: #00c8ff !important;
+  cursor: pointer;
+  transition: transform 0.2s ease, margin-right 0.2s ease; /* Añadida transición para margin-right */
+}
+
+.chat-input :deep(.mdi-send:hover) {
+  transform: scale(1.1);
+  margin-right: -3px; /* Mueve el icono ligeramente a la derecha */
 }
 </style>

@@ -1,11 +1,10 @@
-
 <script setup>
 import { ref, onMounted, onBeforeUnmount, computed, watch } from "vue";
 import * as tf from "@tensorflow/tfjs-core";
 import "@tensorflow/tfjs-backend-webgl";
 import * as poseDetection from "@tensorflow-models/pose-detection";
-import Chat from '@/components/Chat.vue';
-import { useWebSocketStore } from '@/stores/websocket';
+import Chat from "@/components/Chat.vue";
+import { useWebSocketStore } from "@/stores/websocket";
 
 // Use the WebSocket store
 const wsStore = useWebSocketStore();
@@ -21,9 +20,13 @@ const props = defineProps({
 const leaderboard = computed(() => wsStore.roomState?.players || []);
 const chatMessages = computed(() => wsStore.chatMessages);
 
-watch(chatMessages, (newMessages) => {
-  console.log('Chat messages updated in PoseDetector:', newMessages);
-}, { deep: true });
+watch(
+  chatMessages,
+  (newMessages) => {
+    console.log("Chat messages updated in PoseDetector:", newMessages);
+  },
+  { deep: true }
+);
 //-------------------------
 
 const videoRef = ref(null);
@@ -96,9 +99,12 @@ function sendRepetitionUpdate(count) {
 
 // Funció per enviar missatges de chat
 const handleSendMessage = (message) => {
-  console.log('handleSendMessage called in PoseDetector with message:', message);
+  console.log(
+    "handleSendMessage called in PoseDetector with message:",
+    message
+  );
   wsStore.sendMessage({
-    action: 'send_message',
+    action: "send_message",
     payload: { roomId: props.sessionId, text: message },
   });
 };
@@ -172,7 +178,9 @@ async function startCamera() {
     return true;
   } catch (err) {
     console.error("No s’ha pogut accedir a la càmera:", err);
-    alert("No s’ha pogut accedir a la càmera. La funcionalitat de detecció de poses no estarà disponible.");
+    alert(
+      "No s’ha pogut accedir a la càmera. La funcionalitat de detecció de poses no estarà disponible."
+    );
     return false;
   }
 }
@@ -267,95 +275,113 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div class="main-container">
-    <video
-      ref="videoRef"
-      playsinline
-      muted
-      autoplay
-      class="video-background"
-    ></video>
-    <canvas ref="canvasRef" class="canvas-overlay"></canvas>
+  <div class="page-container">
+    <div class="video-container">
+      <video
+        ref="videoRef"
+        playsinline
+        muted
+        autoplay
+        class="video-feed"
+      ></video>
+    </div>
 
-    <div class="ui-panel">
-      <h3 class="title">Full Body Squat</h3>
+    <div class="sidebar">
+      <canvas ref="canvasRef" class="skeleton-canvas"></canvas>
 
-      <div class="counter-box">
-        <div class="counter-value">{{ repCounter }}</div>
-        <div class="counter-label">Repeticiones</div>
-      </div>
+      <div class="ui-panel">
+        <h3 class="title">Full Body Squat</h3>
 
-      <div class="feedback-box">
-        <div class="feedback-message">{{ feedbackMsg }}</div>
-      </div>
+        <div class="counter-box">
+          <div class="counter-value">{{ repCounter }}</div>
+          <div class="counter-label">Repeticiones</div>
+        </div>
 
-      <div class="leaderboard-panel">
-        <h4 class="leaderboard-title">
-          Leaderboard (Sala: {{ props.sessionId }})
-        </h4>
-        <ol class="leaderboard-list">
-          <li
-            v-for="(p, index) in leaderboard"
-            :key="p.username"
-            :class="{ 'highlight-self': p.username === props.username }"
-          >
-            <strong>{{ index + 1 }}. {{ p.username }}</strong
-            >: {{ p.reps }}
-          </li>
-        </ol>
+        <div class="feedback-box">
+          <div class="feedback-message">{{ feedbackMsg }}</div>
+        </div>
+
+        <div class="leaderboard-panel">
+          <h4 class="leaderboard-title">
+            Leaderboard (Sala: {{ props.sessionId }})
+          </h4>
+          <ol class="leaderboard-list">
+            <li
+              v-for="(p, index) in leaderboard"
+              :key="p.username"
+              :class="{ 'highlight-self': p.username === props.username }"
+            >
+              <strong>{{ index + 1 }}. {{ p.username }}</strong
+              >: {{ p.reps }}
+            </li>
+          </ol>
+        </div>
       </div>
     </div>
+
     <div class="chat-panel">
-      <Chat :messages="chatMessages" :username="props.username" @send-message="handleSendMessage" />
+      <Chat
+        :messages="chatMessages"
+        :username="props.username"
+        @send-message="handleSendMessage"
+      />
     </div>
   </div>
 </template>
 
 <style scoped>
-.main-container {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
+.page-container {
+  display: flex;
+  width: 100vw;
+  height: 100vh;
   background: #111;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica,
     Arial, sans-serif;
+  color: white;
 }
 
-.video-background,
-.canvas-overlay {
-  position: absolute;
-  top: 0;
-  left: 0;
+.video-container {
+  flex: 3; /* Ocupa 3/4 parts de l'espai */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: #000;
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+.video-feed {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain; /* 'contain' per evitar deformacions */
+  border-radius: 12px;
 }
 
-.video-background {
-  z-index: 0;
+.sidebar {
+  flex: 1; /* Ocupa 1/4 part de l'espai */
+  display: flex;
+  flex-direction: column;
+  background: #1e1e1e;
+  padding: 20px;
+  box-sizing: border-box;
+  gap: 20px;
+  height: 100vh;
+  overflow-y: auto;
 }
 
-.canvas-overlay {
-  z-index: 1;
+.skeleton-canvas {
+  width: 100%;
+  aspect-ratio: 16 / 9; /* Mantenir la proporció del vídeo */
+  background: #000;
+  border-radius: 8px;
 }
 
 .ui-panel {
-  position: absolute;
-  top: 0;
-  right: 0;
-  height: 100%;
-  width: 280px;
-  background: rgba(30, 30, 30, 0.85);
-  z-index: 2;
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 24px;
-  box-sizing: border-box;
-  gap: 30px;
-  color: white;
+  gap: 20px;
+  width: 100%;
 }
 
 .title {
@@ -367,10 +393,10 @@ onBeforeUnmount(() => {
 }
 
 .counter-box {
-  width: 170px;
-  height: 170px;
+  width: 150px;
+  height: 150px;
   border-radius: 50%;
-  border: 9px solid #00c8ff;
+  border: 8px solid #00c8ff;
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -379,13 +405,13 @@ onBeforeUnmount(() => {
 }
 
 .counter-value {
-  font-size: 5.5rem;
+  font-size: 4.5rem;
   font-weight: 700;
   line-height: 1;
 }
 
 .counter-label {
-  font-size: 1rem;
+  font-size: 0.9rem;
   text-transform: uppercase;
   letter-spacing: 1px;
   color: #ccc;
@@ -401,10 +427,10 @@ onBeforeUnmount(() => {
 }
 
 .feedback-message {
-  font-size: 1.25rem;
+  font-size: 1.1rem;
   font-weight: 600;
   color: #ffc107;
-  min-height: 1.5em;
+  min-height: 1.25em;
 }
 
 .leaderboard-panel {
@@ -412,7 +438,6 @@ onBeforeUnmount(() => {
   padding: 16px;
   background: rgba(0, 0, 0, 0.3);
   border-radius: 8px;
-  margin-top: 10px;
 }
 
 .leaderboard-title {
@@ -442,7 +467,7 @@ onBeforeUnmount(() => {
 
 .highlight-self {
   font-weight: bold;
-  color: #ffc107; /* Color de realç per a l'usuari actual */
+  color: #ffc107;
   background-color: rgba(255, 255, 255, 0.1);
   padding: 5px;
   margin: 2px 0;
@@ -451,10 +476,9 @@ onBeforeUnmount(() => {
 
 .chat-panel {
   position: absolute;
-  bottom: 20px;
-  left: 20px;
+  bottom: 15px; /* Ligeramente más abajo */
+  left: 15px; /* Ligeramente más a la derecha */
   width: 350px;
   z-index: 10;
 }
 </style>
-
