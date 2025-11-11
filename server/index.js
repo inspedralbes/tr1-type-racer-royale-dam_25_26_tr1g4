@@ -34,6 +34,7 @@ if (nodeEnv === 'production') {
 app.use(cors(corsOptions));
 app.use(express.json());
 app.use("/api/users", userRoutes);
+app.use('/api', require('./routes/api'));
 
 const connectedClients = new Map();
 const MAX_PLAYERS_PER_ROOM = 4;

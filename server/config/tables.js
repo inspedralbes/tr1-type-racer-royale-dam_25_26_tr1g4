@@ -96,7 +96,7 @@ async function createTables() {
     const [rows] = await db.execute('SELECT COUNT(*) as count FROM users');
     if (rows[0].count === 0) {
       console.log("🌱 No users found. Seeding database with test data...");
-      await db.query(INSERT_TEST_DATA);
+      await db.query(insert_Test_Data);
       console.log("✅ Test data inserted successfully.");
     } else {
       console.log("ℹ️ Database already contains data. Skipping seeding.");

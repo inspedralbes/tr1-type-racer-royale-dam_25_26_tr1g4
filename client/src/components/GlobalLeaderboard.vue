@@ -6,7 +6,7 @@ const globalLeaderboard = ref([]);
 const isLoading = ref(true);
 
 // URL Api completa 
-const API_URL = 'http://localhost:7001/api/leaderboard/global'; 
+const API_URL = 'http://localhost:3000/api/leaderboard/global'; 
 
 async function fetchGlobalLeaderboard() {
     isLoading.value = true;
