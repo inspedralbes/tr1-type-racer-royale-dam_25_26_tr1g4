@@ -1,25 +1,30 @@
-
 <template>
   <v-container class="fill-height" fluid>
     <v-row align="center" justify="center">
       <v-col cols="12" sm="8" md="6">
         <v-card class="elevation-12 rounded-lg">
           <v-toolbar color="primary" dark>
-            <v-toolbar-title class="text-h5 font-weight-bold text-center flex-grow-1">
+            <v-toolbar-title
+              class="text-h5 font-weight-bold text-center flex-grow-1"
+            >
               Sala de Espera
             </v-toolbar-title>
           </v-toolbar>
 
           <v-card-text class="pa-6">
             <div class="text-center mb-4">
-              <h2 class="text-h4 font-weight-bold text-primary">{{ roomId }}</h2>
+              <h2 class="text-h4 font-weight-bold text-primary">
+                {{ roomId }}
+              </h2>
               <p class="text-medium-emphasis">Propietario: {{ owner }}</p>
             </div>
 
             <v-divider class="my-4"></v-divider>
 
-            <h3 class="text-h6 mb-2">Jugadores ({{ players.length }} / {{ maxPlayers }})</h3>
-            
+            <h3 class="text-h6 mb-2">
+              Jugadores ({{ players.length }} / {{ maxPlayers }})
+            </h3>
+
             <v-list lines="one" bg-color="transparent">
               <v-list-item
                 v-for="player in players"
@@ -30,33 +35,39 @@
                   <v-icon color="primary">mdi-account-circle</v-icon>
                 </template>
 
-                <v-list-item-title class="font-weight-medium">{{ player.username }}</v-list-item-title>
+                <v-list-item-title class="font-weight-medium">{{
+                  player.username
+                }}</v-list-item-title>
 
                 <template v-slot:append>
-                  <v-chip :color="player.ready ? 'success' : 'error'" variant="elevated" class="font-weight-bold">
-                    {{ player.ready ? 'Listo' : 'No Listo' }}
+                  <v-chip
+                    :color="player.ready ? 'success' : 'error'"
+                    variant="elevated"
+                    class="font-weight-bold"
+                  >
+                    {{ player.ready ? "Listo" : "No Listo" }}
                   </v-chip>
                 </template>
               </v-list-item>
             </v-list>
-            
+
             <v-alert
-                v-if="amIOwner && !allPlayersReady"
-                type="info"
-                variant="tonal"
-                class="mt-4"
-                icon="mdi-information-outline"
+              v-if="amIOwner && !allPlayersReady"
+              type="info"
+              variant="tonal"
+              class="mt-4"
+              icon="mdi-information-outline"
             >
-                El botón para empezar la partida se habilitará cuando todos los jugadores estén listos.
+              El botón para empezar la partida se habilitará cuando todos los
+              jugadores estén listos.
             </v-alert>
 
             <v-divider class="my-4"></v-divider>
-
           </v-card-text>
 
           <v-divider></v-divider>
 
-          <v-card-actions class="pa-4" style="align-items: center;">
+          <v-card-actions class="pa-4" style="align-items: center">
             <v-btn
               :color="isReady ? 'warning' : 'primary'"
               @click="sendReady"
@@ -64,8 +75,10 @@
               variant="elevated"
               class="font-weight-bold"
             >
-              <v-icon left class="mr-2">{{ isReady ? 'mdi-close' : 'mdi-check' }}</v-icon>
-              {{ isReady ? 'No estoy listo' : '¡Estoy Listo!' }}
+              <v-icon left class="mr-2">{{
+                isReady ? "mdi-close" : "mdi-check"
+              }}</v-icon>
+              {{ isReady ? "No estoy listo" : "¡Estoy Listo!" }}
             </v-btn>
             <!-- Dropdown with exercises (shows tren: 'inferior' or 'superior') -->
             <v-spacer></v-spacer>
@@ -78,11 +91,16 @@
               label="Selecciona exercici"
               dense
               hide-details
-              style="max-width: 320px; margin-right: 12px;">
+              style="max-width: 320px; margin-right: 12px"
+            >
               <template v-slot:item="{ props, item }">
                 <v-list-item v-bind="props">
                   <template v-slot:title>
-                    <div :class="item.raw.tren === 'superior' ? 'text-red' : 'text-blue'">
+                    <div
+                      :class="
+                        item.raw.tren === 'superior' ? 'text-red' : 'text-blue'
+                      "
+                    >
                       {{ item.raw.label }}
                     </div>
                   </template>
@@ -107,16 +125,20 @@
       </v-col>
     </v-row>
     <div class="chat-panel">
-      <Chat :messages="chatMessages" :username="wsStore.username" @send-message="handleSendMessage" />
+      <Chat
+        :messages="chatMessages"
+        :username="wsStore.username"
+        @send-message="handleSendMessage"
+      />
     </div>
   </v-container>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch, onBeforeUnmount } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
-import { useWebSocketStore } from '@/stores/websocket';
-import Chat from '@/components/Chat.vue';
+import { ref, computed, onMounted, watch, onBeforeUnmount } from "vue";
+import { useRoute, useRouter } from "vue-router";
+import { useWebSocketStore } from "@/stores/websocket";
+import Chat from "@/components/Chat.vue";
 
 const route = useRoute();
 const router = useRouter();
@@ -126,20 +148,20 @@ const roomId = ref(route.params.roomId);
 
 const players = computed(() => wsStore.roomState?.players || []);
 const maxPlayers = computed(() => wsStore.roomState?.maxPlayers || 4);
-const owner = computed(() => wsStore.roomState?.owner || '');
+const owner = computed(() => wsStore.roomState?.owner || "");
 const chatMessages = computed(() => wsStore.chatMessages);
 
 const amIOwner = computed(() => wsStore.username === owner.value);
 
 const isReady = computed(() => {
-  const me = players.value.find(p => p.username === wsStore.username);
+  const me = players.value.find((p) => p.username === wsStore.username);
   return me ? me.ready : false;
 });
 
 const allPlayersReady = computed(() => {
-    if (players.value.length === 0) return false;
-    // Game can start if there is at least one player and all are ready
-    return players.value.length > 0 && players.value.every(p => p.ready);
+  if (players.value.length === 0) return false;
+  // Game can start if there is at least one player and all are ready
+  return players.value.length > 0 && players.value.every((p) => p.ready);
 });
 
 const selectedExerciseId = ref(null);
@@ -148,7 +170,7 @@ const exerciseItems = ref([]);
 
 const sendReady = () => {
   wsStore.sendMessage({
-    action: 'player_ready',
+    action: "player_ready",
     payload: { roomId: roomId.value },
   });
 };
@@ -156,44 +178,48 @@ const sendReady = () => {
 const startGame = () => {
   // include the selected tren value in the payload (can be 'superior' or 'inferior' or any value stored in exercises.tren)
   wsStore.sendMessage({
-    action: 'start_game',
+    action: "start_game",
     payload: { roomId: roomId.value, exerciseId: selectedExerciseId.value },
   });
 };
 
 const handleSendMessage = (message) => {
   wsStore.sendMessage({
-    action: 'send_message',
+    action: "send_message",
     payload: { roomId: roomId.value, text: message },
   });
 };
 
 // Watch for game starting
-watch(() => wsStore.gameStarting, (isStarting) => {
-  if (isStarting && wsStore.roomState?.roomId === roomId.value) {
-    router.push({ name: 'sala', params: { id: roomId.value } });
+watch(
+  () => wsStore.gameStarting,
+  (isStarting) => {
+    if (isStarting && wsStore.roomState?.roomId === roomId.value) {
+      router.push({ name: "sala", params: { id: roomId.value } });
+    }
   }
-});
+);
 
 onMounted(() => {
   wsStore.gameStarting = false;
   console.log(`Entrando en la sala ${roomId.value}`);
   // fetch exercises for the dropdown
-  fetch('http://localhost:7001/api/exercises')
-    .then(res => res.json())
-    .then(data => {
+  fetch("http://localhost:3000/api/exercises")
+    .then((res) => res.json())
+    .then((data) => {
       if (data && data.exercises) {
         // Map into items with label and tren
-        exerciseItems.value = data.exercises.map(e => ({ 
+        exerciseItems.value = data.exercises.map((e) => ({
           label: e.name,
           id: e.id,
-          tren: e.tren
+          tren: e.tren,
         }));
         // Preselect first item's tren if exists
-        if (exerciseItems.value.length > 0) selectedExerciseId.value = exerciseItems.value[0].id;
+        if (exerciseItems.value.length > 0)
+          selectedExerciseId.value = exerciseItems.value[0].id;
       }
     })
-    .catch(err => console.error('Error carregant exercicis:', err));
+    .catch((err) => console.error("Error carregant exercicis:", err));
 });
 
 onBeforeUnmount(() => {
