@@ -22,44 +22,8 @@ jobs:
             REPO_URL="https://github.com/${{ github.repository }}.git"
             BRANCH="main"
 
-            # Clone repo if it doesn't exist
-            if [ ! -d "$PROJECT_PATH" ]; then
-              echo "Cloning repository..."
-              git clone $REPO_URL $PROJECT_PATH
-            fi
-
-            # Navigate to project directory
-            cd $PROJECT_PATH
-
-            # Ensure clean working directory before checkout
-            git reset --hard
-            git clean -fd
-
-            # Pull latest changes
-            git checkout $BRANCH
-            git pull origin $BRANCH
-
-            # Create .env file from GitHub Secrets
-            echo "Creating .env file..."
-            echo "NODE_ENV=${{ secrets.NODE_ENV }}" > .env
-            echo "FRONTEND_URL=${{ secrets.FRONTEND_URL }}" >> .env
-            echo "MYSQL_ROOT_PASSWORD=${{ secrets.MYSQL_ROOT_PASSWORD }}" >> .env
-            echo "MYSQL_PASSWORD=${{ secrets.MYSQL_PASSWORD }}" >> .env
-            echo "MYSQL_DATABASE=${{ secrets.MYSQL_DATABASE }}" >> .env
-            echo "MYSQL_USER=${{ secrets.MYSQL_USER }}" >> .env
-            # Credenciales para Adminer (autenticación básica en Nginx)
-            # Las variables VITE_* son cruciales para el build del frontend
-            echo "VITE_NODE_ENV=${{ secrets.NODE_ENV }}" >> .env
-            echo "VITE_API_URL=${{ secrets.FRONTEND_URL }}" >> .env
-            echo "VITE_SOCKET_URL=${{ secrets.FRONTEND_URL }}" >> .env
-
-
-
-            # Run docker-compose
-            echo "Starting docker-compose..."
-            # Actualiza los servicios: reconstruye las imágenes que han cambiado y reinicia
-            # los contenedores correspondientes. Los datos de las bases de datos se conservan.
-            docker compose --env-file ./.env -f docker-compose.prod.yml up --build -d --remove-orphans
-
-            # Limpia cualquier otra imagen de Docker que no se esté utilizando
-            docker image prune -f
+            rm -rf "${PROJECT_PATH}"
+            git clone -b "${BRANCH}" "${REPO_URL}" "${PROJECT_PATH}"
+            cd "${PROJECT_PATH}"
+            cp .env.example .env
+            docker compose -f docker-compose.prod.yml up --build -d
