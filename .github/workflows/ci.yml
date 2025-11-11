@@ -25,4 +25,5 @@ jobs:
             rm -rf "${PROJECT_PATH}"
             git clone -b "${BRANCH}" "${REPO_URL}" "${PROJECT_PATH}"
             cd "${PROJECT_PATH}"
-            docker compose -f docker-compose.prod.yml up --build -d
+            cp .env.example .env
+            docker-compose -f docker-compose.prod.yml up --build -d
