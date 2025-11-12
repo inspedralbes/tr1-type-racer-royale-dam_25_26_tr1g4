@@ -1,9 +1,10 @@
 <script setup>
-import { ref } from "vue";
-import { useRouter } from "vue-router";
+import { ref, onMounted } from "vue";
+import { useRouter, useRoute } from "vue-router";
 import api from "@/api";
 
 const router = useRouter();
+const route = useRoute();
 
 // Variables d'estat
 const email = ref("");
@@ -12,6 +13,12 @@ const username = ref("");
 const isRegistering = ref(false);
 const loading = ref(false);
 const errorMessage = ref("");
+
+onMounted(() => {
+  if (route.query.error === 'auth') {
+    errorMessage.value = 'Has de fer login per accedir a aquesta pàgina.';
+  }
+});
 
 async function handleLogin() {
   errorMessage.value = "";

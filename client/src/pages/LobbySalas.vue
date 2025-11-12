@@ -48,7 +48,6 @@
                     v-for="sala in salasPublicas"
                     :key="sala.id"
                     :title="`Sala ${sala.id}`"
-                    :subtitle="`Ejercicio: ${sala.exercise}`"
                   >
                     <template v-slot:append>
                       <v-chip class="mr-4">{{ sala.jugadores }} / {{ sala.maxJugadores }}</v-chip>

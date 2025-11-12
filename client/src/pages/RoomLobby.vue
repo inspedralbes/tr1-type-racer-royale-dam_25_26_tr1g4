@@ -69,6 +69,17 @@
 
           <v-card-actions class="pa-4" style="align-items: center">
             <v-btn
+              color="error"
+              @click="exitRoom"
+              size="large"
+              variant="outlined"
+              class="font-weight-bold mr-4"
+            >
+              <v-icon left class="mr-2">mdi-exit-to-app</v-icon>
+              Salir al Menú
+            </v-btn>
+
+            <v-btn
               :color="isReady ? 'warning' : 'primary'"
               @click="sendReady"
               size="large"
@@ -190,6 +201,11 @@ const handleSendMessage = (message) => {
   });
 };
 
+const exitRoom = () => {
+  wsStore.leaveRoom();
+  router.push('/lobby');
+};
+
 // Watch for game starting
 watch(
   () => wsStore.gameStarting,
@@ -204,6 +220,13 @@ watch(
 );
 
 onMounted(() => {
+  // If the user lands here on a refresh, the roomState will be null.
+  // Redirect them to the lobby to prevent being in a broken state.
+  if (!wsStore.roomState) {
+    router.push('/lobby');
+    return;
+  }
+
   wsStore.gameStarting = false;
   console.log(`Entrando en la sala ${roomId.value}`);
   // fetch exercises for the dropdown

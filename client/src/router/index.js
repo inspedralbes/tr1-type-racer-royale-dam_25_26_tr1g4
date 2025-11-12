@@ -28,19 +28,35 @@ const router = createRouter({
         username: route.query.username 
       }),
       // Aquí podríem afegir lògica per requerir que l'usuari estigui autenticat
-      // meta: { requiresAuth: true }
+      meta: { requiresAuth: true }
     },
     {
       path: "/lobby",
       name: "lobby",
       component: LobbySalas,
+      meta: { requiresAuth: true },
     },
     {
       path: "/room/:roomId",
       name: "room",
       component: RoomLobby,
+      meta: { requiresAuth: true },
     },
   ],
+});
+
+// Guardia de Navegación
+router.beforeEach((to, from, next) => {
+  const loggedIn = localStorage.getItem('fithub-token');
+
+  if (to.matched.some(record => record.meta.requiresAuth) && !loggedIn) {
+    // Si la ruta requiere autenticación y el usuario no está logueado,
+    // redirige a la página de login con un mensaje de error.
+    next({ path: '/', query: { error: 'auth' } });
+  } else {
+    // Si no, permite la navegación.
+    next();
+  }
 });
 
 // --- Lògica del Workaround (Mantinguda) ---

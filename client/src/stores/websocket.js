@@ -112,9 +112,20 @@ export const useWebSocketStore = defineStore('websocket', {
       }
     },
     
+    leaveRoom() {
+      if (this.roomState) {
+        this.sendMessage({
+          action: 'leave_room',
+          payload: { roomId: this.roomState.roomId },
+        });
+        this.resetRoomState();
+      }
+    },
+
     resetRoomState() {
         this.roomState = null;
         this.gameStarting = false;
+        this.chatMessages = [];
     }
   },
 });
