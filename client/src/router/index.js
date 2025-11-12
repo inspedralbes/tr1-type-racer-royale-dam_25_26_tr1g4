@@ -42,6 +42,12 @@ const router = createRouter({
       component: RoomLobby,
       meta: { requiresAuth: true },
     },
+    {
+      path: "/profile",
+      name: "profile",
+      component: () => import("@/pages/ProfileView.vue"),
+      meta: { requiresAuth: true },
+    },
   ],
 });
 
