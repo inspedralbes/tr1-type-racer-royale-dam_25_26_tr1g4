@@ -15,7 +15,7 @@ import ProfileMenu from '@/components/ProfileMenu.vue';
 
 const wsStore = useWebSocketStore();
 const route = useRoute();
-const socketURL = "ws://localhost:3000";
+const socketURL = import.meta.env.VITE_SOCKET_URL || "ws://localhost:3000";
 
 const isLoggedIn = ref(false);
 
