@@ -183,9 +183,8 @@ function initWebSocket(server) {
   );
 
   wss.on("connection", (ws, req) => {
-    const urlParams = new URLSearchParams(req.url.slice(1));
-
-    const username = urlParams.get("username");
+    const { searchParams } = new URL(req.url, `http://${req.headers.host}`);
+    const username = searchParams.get("username");
 
     if (!username) {
       ws.close(1008, "Nombre de usuario no proporcionado");
@@ -405,6 +404,8 @@ function initWebSocket(server) {
           console.log(
             `Jugador ${
               ws.username
+            `Jugador ${
+              ws.username
             } unido a la sala ${roomCode}. Jugadores: [${playersInfo
               .map((p) => p.username)
               .join(", ")}]`
@@ -613,6 +614,8 @@ function initWebSocket(server) {
             console.log(
               `Jugador ${
                 ws.username
+              `Jugador ${
+                ws.username
               } ha salido de la sala ${roomId}. Jugadores: [${playersInfo
                 .map((p) => p.username)
                 .join(", ")}]`
@@ -661,7 +664,10 @@ async function connectWithRetry(retries = 5, delay = 5000) {
 
 async function startServer() {
   try {
-    await connectWithRetry();
+    // Docker's healthcheck ensures the database is ready, so we can connect directly.
+    await createTables();
+    console.log("✅ Database tables created or already exist.");
+
     const PORT = 3000;
     const server = app.listen(PORT, () => {
       console.log(
@@ -670,7 +676,10 @@ async function startServer() {
     });
     initWebSocket(server);
   } catch (err) {
-    console.error("❌ Failed to start server:", err.message);
+    console.error(
+      "❌ Failed to start server or connect to database:",
+      err.message
+    );
     process.exit(1);
   }
 }

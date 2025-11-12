@@ -269,9 +269,17 @@ onBeforeUnmount(() => {
   margin: 0 0 10px 0;
   color: #00c8ff;
   text-align: center;
+  font-size: 1.1rem;
+  margin: 0 0 10px 0;
+  color: #00c8ff;
+  text-align: center;
 }
 
 .leaderboard-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  font-size: 1rem;
   list-style: none;
   padding: 0;
   margin: 0;
@@ -283,9 +291,14 @@ onBeforeUnmount(() => {
   display: flex;
   justify-content: space-between;
   border-bottom: 1px dashed rgba(255, 255, 255, 0.1);
+  padding: 5px 0;
+  display: flex;
+  justify-content: space-between;
+  border-bottom: 1px dashed rgba(255, 255, 255, 0.1);
 }
 
 .leaderboard-list li:last-child {
+  border-bottom: none;
   border-bottom: none;
 }
 
