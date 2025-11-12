@@ -1,7 +1,7 @@
 
 const { WebSocketServer } = require('ws');
 const url = require('url');
-const User = require('../models/user');
+const { User } = require('../models/sequelize');
 const db = require('../config/database');
 
 const sessions = {};
@@ -89,7 +89,7 @@ function initGameSocket(server) {
     }
 
     try {
-      const user = await User.findByUsername(username);
+      const user = await User.findOne({ where: { username } });
       if (user) {
         ws.userId = user.id;
         ws.username = user.username;
@@ -217,18 +217,23 @@ function updateReps(sessionId, userId, newRepCount) {
 function broadcastLeaderboard(sessionId) {
   const session = sessions[sessionId];
   if (!session) return;
-  // 1. Convertir l'objecte d'usuaris a un array de dades ({username, reps, ...})
-  const leaderboardArray = Object.values(session.participants);
-  // 2. Ordenar per repeticions de forma descendent (de més a menys)
+
+  // 1. Create a clean array of participants with only the data needed by the client
+  const leaderboardArray = Object.values(session.participants).map(p => ({
+    username: p.username,
+    reps: p.reps
+  }));
+
+  // 2. Sort by reps descending
   leaderboardArray.sort((a, b) => b.reps - a.reps);
-  // 3. Crear el missatge estandarditzat
+
+  // 3. Create the standardized message
   const leaderboardMessage = {
-    // És crucial que el client sàpiga quin tipus de missatge rep
     type: 'leaderboard_update',
-    data: leaderboardArray, // Array ja ordenat
+    data: leaderboardArray, // Now a clean, sorted array
   };
 
-   // 4. Utilitzar la funció existent per enviar a tots els clients de la sala
+  // 4. Use the existing function to send to all clients in the room
   broadcastMessage(sessionId, leaderboardMessage);
  
   console.log(`Leaderboard de la sessió ${sessionId} actualitzat i enviat.`);
