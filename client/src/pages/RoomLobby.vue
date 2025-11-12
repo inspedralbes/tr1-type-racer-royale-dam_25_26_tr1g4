@@ -150,6 +150,7 @@ import { ref, computed, onMounted, watch, onBeforeUnmount } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useWebSocketStore } from "@/stores/websocket";
 import Chat from "@/components/Chat.vue";
+import api from "@/api";
 
 const route = useRoute();
 const router = useRouter();
@@ -219,6 +220,25 @@ watch(
   }
 );
 
+async function fetchExercises() {
+  try {
+    const data = await api.get("/workouts");
+    if (data && data.exercises) {
+      // Map into items with label and tren
+      exerciseItems.value = data.exercises.map((e) => ({
+        label: e.name,
+        id: e.id,
+        tren: e.tren,
+      }));
+      // Preselect first item's tren if exists
+      if (exerciseItems.value.length > 0)
+        selectedExerciseId.value = exerciseItems.value[0].id;
+    }
+  } catch (err) {
+    console.error("Error carregant exercicis:", err);
+  }
+}
+
 onMounted(() => {
   // If the user lands here on a refresh, the roomState will be null.
   // Redirect them to the lobby to prevent being in a broken state.
@@ -229,23 +249,7 @@ onMounted(() => {
 
   wsStore.gameStarting = false;
   console.log(`Entrando en la sala ${roomId.value}`);
-  // fetch exercises for the dropdown
-  fetch("http://localhost:3000/api/exercises")
-    .then((res) => res.json())
-    .then((data) => {
-      if (data && data.exercises) {
-        // Map into items with label and tren
-        exerciseItems.value = data.exercises.map((e) => ({
-          label: e.name,
-          id: e.id,
-          tren: e.tren,
-        }));
-        // Preselect first item's tren if exists
-        if (exerciseItems.value.length > 0)
-          selectedExerciseId.value = exerciseItems.value[0].id;
-      }
-    })
-    .catch((err) => console.error("Error carregant exercicis:", err));
+  fetchExercises();
 });
 
 onBeforeUnmount(() => {

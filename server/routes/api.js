@@ -42,7 +42,7 @@ module.exports = router;
 // ⚠️ Recorda fer app.use('/api', require('./routes/api')); al teu servidor principal.
 
 // Ruta per obtenir tots els exercicis (id, name, tren)
-router.get('/exercises', async (req, res) => {
+router.get('/workouts', async (req, res) => {
     try {
         const [rows] = await db.execute('SELECT id, name, tren FROM exercises ORDER BY name');
         res.json({ success: true, exercises: rows });
