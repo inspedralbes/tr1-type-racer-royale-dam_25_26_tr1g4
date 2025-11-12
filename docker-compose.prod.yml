@@ -10,12 +10,23 @@ services:
         VITE_SOCKET_URL: ${VITE_SOCKET_URL}
     ports:
       - "80:80"
+      - "443:443"
+    volumes:
+      - ./proxy/certs:/etc/letsencrypt
+      - ./client:/var/www/certbot
     depends_on:
       backend:
         condition: service_started
     networks:
       - app-network
     restart: unless-stopped # Reinicia Nginx si falla.
+
+  certbot:
+    image: certbot/certbot
+    volumes:
+      - ./proxy/certs:/etc/letsencrypt
+      - ./client:/var/www/certbot
+    command: renew
 
   backend:
     build: ./server
