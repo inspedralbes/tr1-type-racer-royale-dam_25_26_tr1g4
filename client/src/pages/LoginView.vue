@@ -31,7 +31,6 @@ async function handleLogin() {
     };
 
     const data = await api.post("/users/login", dataToSend);
-    const data = await api.post("/users/login", dataToSend);
 
     // 1. Desem el token i dades de l'usuari
     const { token, username: userFromApi } = data;
@@ -42,7 +41,6 @@ async function handleLogin() {
     // 2. Navegació
     router.push({ name: "lobby" });
   } catch (error) {
-    // 3. Gestió d'errors (el missatge ja ve del 'throw new Error' de l'api)
     // 3. Gestió d'errors (el missatge ja ve del 'throw new Error' de l'api)
     errorMessage.value = error.message || "Error de connexió a la xarxa.";
   } finally {
@@ -61,7 +59,6 @@ async function handleRegister() {
       password: password.value,
     };
 
-    await api.post("/users/register", dataToSend);
     await api.post("/users/register", dataToSend);
 
     // Registre completat. Mostrem un missatge i canviem a la vista de login.
@@ -139,7 +136,6 @@ function handleSubmit() {
                 :loading="loading"
                 :disabled="loading"
               >
-                {{ isRegistering ? "Registrar-s e" : "Entrar" }}
                 {{ isRegistering ? "Registrar-s e" : "Entrar" }}
               </v-btn>
             </v-form>

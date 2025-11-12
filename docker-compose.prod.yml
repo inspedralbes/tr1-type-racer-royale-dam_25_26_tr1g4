@@ -31,15 +31,10 @@ services:
   backend:
     build: ./server
     command: npm start
+    env_file: ./.env
     environment:
-      # DB_HOST is set here to override any value from the .env file
+      # DB_HOST se define aquí para sobreescribir cualquier valor del .env
       - DB_HOST=db_mysql
-      - MYSQL_USER=${MYSQL_USER}
-      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
-      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
-      - MYSQL_DATABASE=${MYSQL_DATABASE}
-    env_file:
-      - ./.env
     depends_on:
       db_mysql:
         condition: service_healthy # Espera a que el healthcheck de MySQL pase.
@@ -49,14 +44,11 @@ services:
 
   db_mysql:
     image: mysql:8.0
+    env_file:
+      - ./.env
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
       MYSQL_DATABASE: ${MYSQL_DATABASE}
-      MYSQL_USER: ${MYSQL_USER}
-      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
-      MYSQL_ROOT_HOST: "%" # Allow connections from any host (e.g., other containers)
-    env_file:
-      - ./.env
     volumes:
       - mysql-data:/var/lib/mysql
     healthcheck:

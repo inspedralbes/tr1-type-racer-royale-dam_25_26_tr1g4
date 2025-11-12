@@ -33,11 +33,11 @@ export const useWebSocketStore = defineStore('websocket', {
         console.log('WebSocket connected');
       };
 
-      this.socket.onclose = (event) => {
+      this.socket.onclose = () => {
         this.isConnected = false;
         this.socket = null;
         this.roomState = null;
-        console.log('WebSocket disconnected:', event);
+        console.log('WebSocket disconnected');
       };
 
       this.socket.onerror = (error) => {
