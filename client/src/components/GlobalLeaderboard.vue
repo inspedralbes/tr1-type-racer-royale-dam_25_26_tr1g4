@@ -1,27 +1,23 @@
 <script setup>
-import { ref, onMounted } from 'vue';
-// using native fetch instead of axios
+import { ref, onMounted } from "vue";
+import api from "@/api";
 
 const globalLeaderboard = ref([]);
 const isLoading = ref(true);
 
-// URL Api completa 
-const API_URL = 'http://localhost:3000/api/leaderboard/global'; 
-
 async function fetchGlobalLeaderboard() {
-    isLoading.value = true;
-    try {
-        const resp = await fetch(API_URL);
-        const data = await resp.json();
+  isLoading.value = true;
+  try {
+    const response = await api.get("/leaderboard/global");
 
-        if (data && data.success) {
-            globalLeaderboard.value = data.leaderboard;
-        }
-    } catch (error) {
-        console.error("Error carregant el Leaderboard global:", error);
-    } finally {
-        isLoading.value = false;
+    if (response.success) {
+      globalLeaderboard.value = response.leaderboard;
     }
+  } catch (error) {
+    console.error("Error carregant el Leaderboard global:", error);
+  } finally {
+    isLoading.value = false;
+  }
 }
 
 onMounted(() => {
