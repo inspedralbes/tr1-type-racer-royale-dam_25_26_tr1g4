@@ -1,4 +1,4 @@
-require('dotenv').config();
+require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 const { WebSocketServer } = require("ws");
@@ -6,10 +6,10 @@ const db = require("./config/database");
 const createTables = require("./config/tables");
 const userRoutes = require("./routes/userRoutes");
 const { checkGlobalRecord } = require("./ws/gameSocket"); // Ruta al teu mòdul de BD
-const fs = require('fs').promises;
-const path = require('path');
+const fs = require("fs").promises;
+const path = require("path");
 
-const CHAT_LOG_DIR = path.join(__dirname, 'chats');
+const CHAT_LOG_DIR = path.join(__dirname, "chats");
 
 async function logChatMessage(roomId, messageData) {
   try {
@@ -21,11 +21,11 @@ async function logChatMessage(roomId, messageData) {
 
     try {
       // Try to read existing logs
-      const data = await fs.readFile(logFile, 'utf8');
+      const data = await fs.readFile(logFile, "utf8");
       logs = JSON.parse(data);
     } catch (error) {
       // If file doesn't exist, it's fine, we'll create it.
-      if (error.code !== 'ENOENT') {
+      if (error.code !== "ENOENT") {
         throw error; // Rethrow other errors
       }
     }
@@ -34,13 +34,11 @@ async function logChatMessage(roomId, messageData) {
     logs.push(messageData);
 
     // Write the updated logs back to the file
-    await fs.writeFile(logFile, JSON.stringify(logs, null, 2), 'utf8');
-
+    await fs.writeFile(logFile, JSON.stringify(logs, null, 2), "utf8");
   } catch (error) {
     console.error(`Error logging chat message for room ${roomId}:`, error);
   }
 }
-
 
 const app = express();
 
@@ -52,16 +50,18 @@ const corsOptions = {
 const nodeEnv = process.env.NODE_ENV;
 
 // En producción, solo permite peticiones desde la URL del frontend definida en .env
-if (nodeEnv === 'production') {
-  console.log('Running in production mode');
+if (nodeEnv === "production") {
+  console.log("Running in production mode");
   if (process.env.FRONTEND_URL) {
     corsOptions.origin = process.env.FRONTEND_URL;
   } else {
-    console.error("ERROR: FRONTEND_URL is not set in the production environment. CORS will be restricted.");
+    console.error(
+      "ERROR: FRONTEND_URL is not set in the production environment. CORS will be restricted."
+    );
     corsOptions.origin = false; // Disallow all origins if not set
   }
 } else {
-  console.log('Running in development mode');
+  console.log("Running in development mode");
   // En desarrollo, permite cualquier origen
   corsOptions.origin = "*";
 }
@@ -69,8 +69,8 @@ if (nodeEnv === 'production') {
 app.use(cors(corsOptions));
 app.use(express.json());
 app.use("/api/users", userRoutes);
-app.use('/api/stats', require('./routes/statsRoutes'));
-app.use('/api', require('./routes/api'));
+app.use("/api/stats", require("./routes/statsRoutes"));
+app.use("/api", require("./routes/api"));
 
 const connectedClients = new Map();
 const MAX_PLAYERS_PER_ROOM = 4;
@@ -183,13 +183,13 @@ function initWebSocket(server) {
   );
 
   wss.on("connection", (ws, req) => {
-    const urlParams = new URLSearchParams(req.url.slice(1));
-
-    const username = urlParams.get("username");
+    // ⬇️ ESTA ES LA CORRECCIÓN ⬇️
+    // Volvemos al método robusto de la V1 para leer el 'username'
+    const { searchParams } = new URL(req.url, `http://${req.headers.host}`);
+    const username = searchParams.get("username");
 
     if (!username) {
       ws.close(1008, "Nombre de usuario no proporcionado");
-
       return;
     }
 
@@ -204,7 +204,6 @@ function initWebSocket(server) {
         data = JSON.parse(message);
       } catch (error) {
         console.error("Error al parsear mensaje:", message);
-
         return;
       }
 
@@ -213,22 +212,15 @@ function initWebSocket(server) {
       switch (action) {
         case "create_room": {
           const roomCode = generateRoomId();
-
           const roomId = roomCode;
-
           const ownerUsername = ws.username;
 
           rooms[roomId] = {
             id: roomId,
-
             owner: ownerUsername,
-
             players: [{ ws, username: ownerUsername, reps: 0, ready: true }],
-
             isPublic: false,
-
             status: "waiting",
-
             maxPlayers: MAX_PLAYERS_PER_ROOM,
           };
 
@@ -237,57 +229,41 @@ function initWebSocket(server) {
           if (!connectedClients.has(roomId)) {
             connectedClients.set(roomId, new Set());
           }
-
           connectedClients.get(roomId).add(ws);
 
           const roomStatePayload = {
             roomId: roomId,
-
             owner: ownerUsername,
-
             players: rooms[roomId].players.map((p) => ({
               username: p.username,
               ready: p.ready,
             })),
-
             maxPlayers: MAX_PLAYERS_PER_ROOM,
           };
 
           ws.send(
             JSON.stringify({
               action: "room_created",
-
               payload: roomStatePayload,
             })
           );
-
           console.log(`Sala privada ${roomCode} creada por ${ownerUsername}`);
-
           break;
         }
 
         case "create_public_room": {
           const { exercise_text } = payload;
-
           const roomCode = generateRoomId();
-
           const roomId = roomCode;
-
           const ownerUsername = ws.username;
 
           rooms[roomId] = {
             id: roomId,
-
             owner: ownerUsername,
-
             players: [{ ws, username: ownerUsername, reps: 0, ready: true }],
-
             isPublic: true,
-
             exercise: exercise_text,
-
             status: "waiting",
-
             maxPlayers: MAX_PLAYERS_PER_ROOM,
           };
 
@@ -296,46 +272,36 @@ function initWebSocket(server) {
           if (!connectedClients.has(roomId)) {
             connectedClients.set(roomId, new Set());
           }
-
           connectedClients.get(roomId).add(ws);
 
           const roomStatePayload = {
             roomId: roomId,
-
             owner: ownerUsername,
-
             players: rooms[roomId].players.map((p) => ({
               username: p.username,
               ready: p.ready,
             })),
-
             maxPlayers: MAX_PLAYERS_PER_ROOM,
           };
 
           ws.send(
             JSON.stringify({
               action: "room_created",
-
               payload: roomStatePayload,
             })
           );
-
           console.log(`Sala pública ${roomCode} creada por ${ownerUsername}`);
-
           get_public_rooms();
-
           break;
         }
 
         case "get_public_rooms": {
           get_public_rooms();
-
           break;
         }
 
         case "join_room": {
           const { roomId: roomCode } = payload;
-
           const room = rooms[roomCode];
 
           if (!room) {
@@ -345,7 +311,6 @@ function initWebSocket(server) {
                 payload: { message: "La sala no existe." },
               })
             );
-
             return;
           }
 
@@ -356,7 +321,6 @@ function initWebSocket(server) {
                 payload: { message: "La sala está llena." },
               })
             );
-
             return;
           }
 
@@ -372,7 +336,6 @@ function initWebSocket(server) {
           if (!connectedClients.has(roomCode)) {
             connectedClients.set(roomCode, new Set());
           }
-
           connectedClients.get(roomCode).add(ws);
 
           const playersInfo = room.players.map((p) => ({
@@ -382,11 +345,8 @@ function initWebSocket(server) {
 
           const roomStatePayload = {
             roomId: roomCode,
-
             owner: room.owner,
-
             players: playersInfo,
-
             maxPlayers: MAX_PLAYERS_PER_ROOM,
           };
 
@@ -415,18 +375,14 @@ function initWebSocket(server) {
               action: "room_full",
               payload: { roomId: roomCode },
             });
-
             console.log(`Sala ${roomCode} llena. Notificando a los jugadores.`);
           }
-
           break;
         }
 
         case "player_ready": {
           const { roomId } = payload;
-
           const room = rooms[roomId];
-
           const player = room ? room.players.find((p) => p.ws === ws) : null;
 
           if (player) {
@@ -439,11 +395,8 @@ function initWebSocket(server) {
 
             const roomStatePayload = {
               roomId: roomId,
-
               owner: room.owner,
-
               players: playersInfo,
-
               maxPlayers: room.maxPlayers,
             };
 
@@ -452,13 +405,11 @@ function initWebSocket(server) {
               payload: roomStatePayload,
             });
           }
-
           break;
         }
 
         case "start_game": {
           const { roomId } = payload;
-
           const room = rooms[roomId];
 
           if (room && room.owner === ws.username) {
@@ -466,9 +417,7 @@ function initWebSocket(server) {
 
             if (allReady && room.players.length > 0) {
               room.status = "playing";
-
               broadcastToRoom(roomId, { action: "game_starting" });
-
               console.log(
                 `Game starting in room ${roomId} by owner ${ws.username}`
               );
@@ -485,13 +434,11 @@ function initWebSocket(server) {
               );
             }
           }
-
           break;
         }
 
         case "update_reps": {
           const { roomId, reps, userId } = payload;
-
           const room = rooms[roomId];
 
           if (room && room.players && typeof reps === "number" && userId) {
@@ -499,9 +446,7 @@ function initWebSocket(server) {
 
             if (player) {
               player.reps = reps;
-
               checkGlobalRecord(ws, userId, player.username, reps);
-
               broadcastLeaderboard(roomId);
             }
           } else {
@@ -509,21 +454,18 @@ function initWebSocket(server) {
               `Dades invàlides per a update_reps. RoomId: ${roomId}, UserId: ${userId}`
             );
           }
-
           break;
         }
 
         case "end_competition": {
           const { roomId } = payload;
-
           processCompetitionEnd(roomId);
-
           break;
         }
 
         case "send_message": {
           try {
-            console.log('Received send_message action with payload:', payload);
+            console.log("Received send_message action with payload:", payload);
             const { roomId, text } = payload;
             const room = rooms[roomId];
             if (room) {
@@ -535,7 +477,10 @@ function initWebSocket(server) {
                 action: "new_message",
                 payload: messagePayload,
               };
-              console.log(`Broadcasting new_message to room ${roomId}:`, message);
+              console.log(
+                `Broadcasting new_message to room ${roomId}:`,
+                message
+              );
               broadcastToRoom(roomId, message);
 
               // Log the message to a file
@@ -544,7 +489,6 @@ function initWebSocket(server) {
                 timestamp: new Date().toISOString(),
               };
               await logChatMessage(roomId, logEntry);
-
             } else {
               console.log(`Room ${roomId} not found for send_message action.`);
             }
@@ -563,9 +507,7 @@ function initWebSocket(server) {
 
       if (roomId && rooms[roomId]) {
         const room = rooms[roomId];
-
         const wasPublic = room.isPublic;
-
         const playerIndex = room.players.findIndex((p) => p.ws === ws);
 
         if (playerIndex !== -1) {
@@ -573,18 +515,14 @@ function initWebSocket(server) {
 
           if (room.players.length === 0) {
             delete rooms[roomId];
-
             console.log(`Sala ${roomId} eliminada por estar vacía.`);
-
             if (wasPublic) {
               get_public_rooms();
             }
           } else {
             // If the owner leaves, assign a new owner
-
             if (room.owner === ws.username) {
               room.owner = room.players[0].username;
-
               console.log(
                 `El propietario ha cambiado a ${room.owner} en la sala ${roomId}`
               );
@@ -597,11 +535,8 @@ function initWebSocket(server) {
 
             const playerLeftPayload = {
               roomId: roomId,
-
               owner: room.owner,
-
               players: playersInfo,
-
               maxPlayers: MAX_PLAYERS_PER_ROOM,
             };
 
@@ -627,7 +562,6 @@ function initWebSocket(server) {
 
       if (roomId && connectedClients.has(roomId)) {
         connectedClients.get(roomId).delete(ws);
-
         if (connectedClients.get(roomId).size === 0) {
           connectedClients.delete(roomId);
         }
