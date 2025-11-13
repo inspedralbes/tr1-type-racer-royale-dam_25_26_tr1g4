@@ -1,27 +1,39 @@
-# Stage 1: Build the Vue.js application
-FROM node:20 AS build-stage
+# Stage 1: Build the Vue application for production
+FROM node:20-alpine as builder
 
-# Deeclara los argumentos que se pueden pasar durante el build
+WORKDIR /app
+
+# Argumentos de build para las variables de entorno de Vite
 ARG VITE_NODE_ENV
 ARG VITE_API_URL
 ARG VITE_SOCKET_URL
 
-WORKDIR /app
-COPY client/package.json ./
-RUN npm install
-COPY client/ ./
-RUN npm run build # Vite usará automáticamente las variables de entorno VITE_*
+# Asigna los args a las variables de entorno para que `npm run build` las use
+ENV VITE_NODE_ENV=$VITE_NODE_ENV
+ENV VITE_API_URL=$VITE_API_URL
+ENV VITE_SOCKET_URL=$VITE_SOCKET_URL
 
-# Stage 2: Serve the application with Nginx
-FROM nginx:alpine
-# Install apache2-utils for htpasswd command
-RUN apk add --no-cache apache2-utils
-# Copy the built assets from the build stage
-COPY --from=build-stage /app/dist /usr/share/nginx/html
-# Remove default nginx configuration
-RUN rm /etc/nginx/conf.d/default.conf
-# Copy the nginx configuration
-COPY nginx.conf /etc/nginx/conf.d/default.conf
-# Create htpasswd file with credentials from environment variables
+COPY package*.json ./
+RUN npm install --omit=dev
+COPY . .
+RUN npm run build
+
+# Stage 2: Serve the production build with Nginx
+FROM nginx:stable-alpine as production
+
+# ¡IMPORTANTE! Eliminamos la copia de `nginx.conf` de aquí.
+# Se montará a través de un volumen en docker-compose.yml
+# COPY nginx.conf /etc/nginx/conf.d/default.conf
+
+COPY --from=builder /app/dist /usr/share/nginx/html
 EXPOSE 80
-CMD ["nginx", "-g", "daemon off;"] 
+EXPOSE 443 
+CMD ["nginx", "-g", "daemon off;"]
+
+# Stage 3: Development environment setup
+FROM node:20-alpine as development
+WORKDIR /app
+COPY package*.json ./
+RUN npm install
+EXPOSE 5173
+CMD ["npm", "run", "dev"]
