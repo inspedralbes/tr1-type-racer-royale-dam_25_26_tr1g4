@@ -183,19 +183,130 @@ wss.on('connection', (ws, req) => {
                 }
                 break;
             }
+
+            case 'leave_room': {
+                const { roomId: roomCodeFromClient } = payload;
+                const currentRoomId = ws.roomId;
+
+                if (!currentRoomId) {
+                    // This websocket connection is not in a room, so do nothing.
+                    return;
+                }
+
+                try {
+                    // Optional: Check if roomCodeFromClient matches the room this ws is in.
+                    const [roomRows] = await db.execute('SELECT room_code FROM sessions WHERE id = ?', [currentRoomId]);
+                    if (roomRows.length === 0 || roomRows[0].room_code !== roomCodeFromClient) {
+                        // Inconsistency, log it and maybe send an error.
+                        console.error(`leave_room inconsistency: ws.roomId=${currentRoomId}, but client sent roomCode=${roomCodeFromClient}`);
+                        // Still, we proceed to remove the user from the room they are in according to the server.
+                    }
+
+                    // Remove player from performances table
+                    await db.execute(
+                        'DELETE FROM performances WHERE user_id = (SELECT id FROM users WHERE username = ?) AND sessio_id = ?',
+                        [ws.username, currentRoomId]
+                    );
+
+                    // Remove client from the room's connected clients
+                    if (connectedClients.has(currentRoomId)) {
+                        const roomClients = connectedClients.get(currentRoomId);
+                        roomClients.delete(ws);
+
+                        // If room is empty, delete it
+                        if (roomClients.size === 0) {
+                            connectedClients.delete(currentRoomId);
+                            console.log(`Room (ID: ${currentRoomId}) deleted from client map as it is empty.`);
+                            // Also delete from database
+                            await db.execute('DELETE FROM sessions WHERE id = ?', [currentRoomId]);
+                            console.log(`Room (ID: ${currentRoomId}) deleted from database.`);
+                        } else {
+                            // If room is not empty, notify remaining players
+                            const [updatedPerformances] = await db.execute(
+                                'SELECT u.username FROM performances p JOIN users u ON p.user_id = u.id WHERE p.sessio_id = ?',
+                                [currentRoomId]
+                            );
+                            const playerUsernames = updatedPerformances.map(p => p.username);
+
+                            const playerLeftPayload = {
+                                roomId: roomCodeFromClient, // Use the code the client knows
+                                players: playerUsernames,
+                                maxPlayers: MAX_PLAYERS_PER_ROOM
+                            };
+                            broadcastToRoom(currentRoomId, { action: 'player_left', payload: playerLeftPayload });
+                            console.log(`Player ${ws.username} left room ${roomCodeFromClient}. Remaining players: [${playerUsernames.join(', ')}]`);
+                        }
+                    }
+
+                    // Unset the roomId for this websocket connection
+                    ws.roomId = null;
+
+                    // Update public rooms list for all clients
+                    await get_public_rooms();
+
+                } catch (error) {
+                    console.error('Error processing leave_room:', error);
+                    ws.send(JSON.stringify({ action: 'error', payload: { message: 'Error leaving room.' } }));
+                }
+                break;
+            }
         }
     });
 
-    ws.on('close', () => {
+    ws.on('close', async () => {
         console.log(`Cliente ${ws.username || '(anónimo)'} desconectado`);
         const roomId = ws.roomId;
-        if (roomId && connectedClients.has(roomId)) {
-            connectedClients.get(roomId).delete(ws);
-            if (connectedClients.get(roomId).size === 0) {
-                connectedClients.delete(roomId);
-                console.log(`Sala ${roomId} eliminada del mapa de clientes por estar vacía.`);
+        if (roomId) {
+            try {
+                // Remove player from performances table
+                await db.execute(
+                    'DELETE FROM performances WHERE user_id = (SELECT id FROM users WHERE username = ?) AND sessio_id = ?',
+                    [ws.username, roomId]
+                );
+
+                let roomCode = '';
+                let isPublic = false;
+                const [roomRows] = await db.execute('SELECT room_code, is_public FROM sessions WHERE id = ?', [roomId]);
+                if (roomRows.length > 0) {
+                    roomCode = roomRows[0].room_code;
+                    isPublic = roomRows[0].is_public;
+                }
+
+                const clientsInRoom = getRoomClients(roomId);
+                clientsInRoom.delete(ws);
+
+                if (clientsInRoom.size === 0) {
+                    connectedClients.delete(roomId);
+                    console.log(`Sala ${roomCode} (ID: ${roomId}) eliminada del mapa de clientes por estar vacía.`);
+                    if (roomRows.length > 0) {
+                        await db.execute('DELETE FROM sessions WHERE id = ?', [roomId]);
+                        console.log(`Sala ${roomCode} (ID: ${roomId}) eliminada de la base de datos.`);
+                    }
+                } else {
+                    // Notify remaining players
+                    const [updatedPerformances] = await db.execute(
+                        'SELECT u.username FROM performances p JOIN users u ON p.user_id = u.id WHERE p.sessio_id = ?',
+                        [roomId]
+                    );
+                    const playerUsernames = updatedPerformances.map(p => p.username);
+
+                    const playerLeftPayload = {
+                        roomId: roomCode,
+                        players: playerUsernames,
+                        maxPlayers: MAX_PLAYERS_PER_ROOM
+                    };
+                    broadcastToRoom(roomId, { action: 'player_left', payload: playerLeftPayload });
+                    console.log(`Jugador ${ws.username} desconectado de la sala ${roomCode}. Jugadores restantes: [${playerUsernames.join(', ')}]`);
+                }
+
+                // If the room was public, update lists for everyone
+                if (isPublic) {
+                    await get_public_rooms();
+                }
+
+            } catch (error) {
+                console.error(`Error al limpiar la sala ${roomId} para el usuario ${ws.username} en desconexión:`, error);
             }
-            // Opcional: podrías querer eliminar al jugador de la tabla `performances` si el juego no ha empezado.
         }
     });
 });
@@ -233,3 +344,4 @@ async function get_public_rooms(ws) {
         }
     }
 }
+
