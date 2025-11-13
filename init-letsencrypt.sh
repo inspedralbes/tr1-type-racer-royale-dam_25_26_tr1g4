@@ -15,8 +15,8 @@ command_exists() {
 }
 
 # Check for required commands
-if ! command_exists docker || ! command_exists docker-compose; then
-  echo "Error: 'docker' and 'docker-compose' are required."
+if ! command_exists docker || ! command_exists "docker compose"; then
+  echo "Error: 'docker' and 'docker compose' are required."
   exit 1
 fi
 
@@ -25,9 +25,9 @@ fi
 # Check if certificate already exists
 if [ -d "$DATA_PATH/conf/live/$DOMAIN" ]; then
   echo "### Certificate for $DOMAIN already exists. Skipping creation. ###"
-  echo "### To renew, run 'docker-compose -f docker-compose.prod.yml run --rm certbot renew' ###"
+  echo "### To renew, run 'docker compose -f docker-compose.prod.yml run --rm certbot renew' ###"
   exit 0
-fi
+}
 
 echo "### Creating initial certificate for $DOMAIN ###"
 
@@ -35,24 +35,24 @@ echo "### Creating initial certificate for $DOMAIN ###"
 echo "### Creating dummy certificate for $DOMAIN ... ###"
 path="/etc/letsencrypt/live/$DOMAIN"
 mkdir -p "$DATA_PATH/conf/live/$DOMAIN"
-docker-compose -f docker-compose.prod.yml run --rm --entrypoint \
-  openssl req -x509 -nodes -newkey rsa:$RSA_KEY_SIZE -days 1 \
+docker compose -f docker-compose.prod.yml run --rm --entrypoint \
+  openssl req -x509 -nodes -newkey rsa:$RSA_KEY_SIZE -days 1\
     -keyout '$path/privkey.pem' \
     -out '$path/fullchain.pem' \
-    -subj '/CN=localhost' certbot
+    -subj '/CN=localhost'" certbot
 echo
 
 # Start Nginx
 echo "### Starting Nginx ... ###"
-docker-compose -f docker-compose.prod.yml up --force-recreate -d nginx
+docker compose -f docker-compose.prod.yml up --force-recreate -d nginx
 echo
 
 # Delete dummy certificate
 echo "### Deleting dummy certificate for $DOMAIN ... ###"
-docker-compose -f docker-compose.prod.yml run --rm --entrypoint \
+docker compose -f docker-compose.prod.yml run --rm --entrypoint \
   rm -Rf /etc/letsencrypt/live/$DOMAIN && \
   rm -Rf /etc/letsencrypt/archive/$DOMAIN && \
-  rm -Rf /etc/letsencrypt/renewal/$DOMAIN.conf certbot
+  rm -Rf /etc/letsencrypt/renewal/$DOMAIN.conf" certbot
 echo
 
 # Request Let's Encrypt certificate
@@ -70,7 +70,7 @@ esac
 staging_arg=""
 # staging_arg="--staging" # Uncomment for testing
 
-docker-compose -f docker-compose.prod.yml run --rm --entrypoint \
+docker compose -f docker-compose.prod.yml run --rm --entrypoint \
   certbot certonly --webroot -w /var/www/certbot \
     $staging_arg \
     $email_arg \
@@ -82,10 +82,10 @@ echo
 
 # Reload Nginx to apply the new certificate
 echo "### Reloading Nginx ... ###"
-docker-compose -f docker-compose.prod.yml exec nginx nginx -s reload
+docker compose -f docker-compose.prod.yml exec nginx nginx -s reload
 
 # Stop all services
 echo "### Stopping all services ... ###"
-docker-compose -f docker-compose.prod.yml down
+docker compose -f docker-compose.prod.yml down
 
-echo "### Initialization complete. You can now start the services with 'docker-compose -f docker-compose.prod.yml up -d' ###"
+echo "### Initialization complete. You can now start the services with 'docker compose -f docker-compose.prod.yml up -d' ###"
