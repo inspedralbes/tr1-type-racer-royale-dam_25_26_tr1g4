@@ -250,6 +250,19 @@ function handleSubmit() {
   padding: 24px 32px; /* Generous padding */
 
 }
+
+.frosted-card {
+  
+    transition: transform 0.3s ease-out, box-shadow 0.3s ease-out; 
+}
+
+
+.frosted-card:hover {
+
+    transform: scale(1.020) translateZ(0); 
+    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.7); 
+}
+
 .frosted-card :deep(.v-field__input) {
   background-color: #2D3748; 
   color: #F1F5F9; 
