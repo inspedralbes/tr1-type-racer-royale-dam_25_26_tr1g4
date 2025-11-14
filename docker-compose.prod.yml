@@ -1,22 +1,4 @@
 services:
-  nginx:
-    build:
-      context: .
-      dockerfile: nginx.Dockerfile
-      # Pasa las variables VITE_* como argumentos al Dockerfile durante la construcción.
-      args:
-        VITE_NODE_ENV: ${NODE_ENV}
-        VITE_API_URL: ${VITE_API_URL}
-        VITE_SOCKET_URL: ${VITE_SOCKET_URL}
-    ports:
-      - "80:80"
-    depends_on:
-      backend:
-        condition: service_started
-    networks:
-      - app-network
-    restart: unless-stopped # Reinicia Nginx si falla.
-
   backend:
     build: ./server
     command: npm start

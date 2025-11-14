@@ -204,7 +204,7 @@ const handleSendMessage = (message) => {
 
 const exitRoom = () => {
   wsStore.leaveRoom();
-  router.push('/lobby');
+  router.push("/lobby");
 };
 
 // Watch for game starting
@@ -212,10 +212,17 @@ watch(
   () => wsStore.gameStarting,
   (isStarting) => {
     if (isStarting && wsStore.roomState?.roomId === roomId.value) {
-      const selectedExercise = exerciseItems.value.find(e => e.id === selectedExerciseId.value);
+      const selectedExercise = exerciseItems.value.find(
+        (e) => e.id === selectedExerciseId.value
+      );
       // Use the exercise label for the route, defaulting to 'squats'. Make it lowercase to be safe.
-      const exerciseName = selectedExercise ? selectedExercise.label.toLowerCase() : 'squats';
-      router.push({ name: "sala", params: { id: roomId.value, exercise: exerciseName } });
+      const exerciseName = selectedExercise
+        ? selectedExercise.label.toLowerCase()
+        : "squats";
+      router.push({
+        name: "sala",
+        params: { id: roomId.value, exercise: exerciseName },
+      });
     }
   }
 );
@@ -243,7 +250,7 @@ onMounted(() => {
   // If the user lands here on a refresh, the roomState will be null.
   // Redirect them to the lobby to prevent being in a broken state.
   if (!wsStore.roomState) {
-    router.push('/lobby');
+    router.push("/lobby");
     return;
   }
 
@@ -253,7 +260,7 @@ onMounted(() => {
 });
 
 onBeforeUnmount(() => {
-  wsStore.resetRoomState();
+  wsStore.leaveRoom();
 });
 </script>
 
