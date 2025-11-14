@@ -17,7 +17,6 @@ declare module 'vue' {
     HelloWorld: typeof import('./src/components/HelloWorld.vue')['default']
     PoseDetector: typeof import('./src/components/PoseDetector.vue')['default']
     PoseFeatures: typeof import('./src/components/PoseFeatures.vue')['default']
-    ProfileMenu: typeof import('./src/components/ProfileMenu.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
   }

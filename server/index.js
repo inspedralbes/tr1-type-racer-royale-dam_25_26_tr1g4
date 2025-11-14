@@ -6,41 +6,6 @@ const db = require("./config/database");
 const createTables = require("./config/tables");
 const userRoutes = require("./routes/userRoutes");
 const { checkGlobalRecord } = require("./ws/gameSocket"); // Ruta al teu mòdul de BD
-const fs = require('fs').promises;
-const path = require('path');
-
-const CHAT_LOG_DIR = path.join(__dirname, 'chats');
-
-async function logChatMessage(roomId, messageData) {
-  try {
-    // Ensure the chat log directory exists
-    await fs.mkdir(CHAT_LOG_DIR, { recursive: true });
-
-    const logFile = path.join(CHAT_LOG_DIR, `${roomId}.json`);
-    let logs = [];
-
-    try {
-      // Try to read existing logs
-      const data = await fs.readFile(logFile, 'utf8');
-      logs = JSON.parse(data);
-    } catch (error) {
-      // If file doesn't exist, it's fine, we'll create it.
-      if (error.code !== 'ENOENT') {
-        throw error; // Rethrow other errors
-      }
-    }
-
-    // Add the new message
-    logs.push(messageData);
-
-    // Write the updated logs back to the file
-    await fs.writeFile(logFile, JSON.stringify(logs, null, 2), 'utf8');
-
-  } catch (error) {
-    console.error(`Error logging chat message for room ${roomId}:`, error);
-  }
-}
-
 
 const app = express();
 
@@ -69,7 +34,6 @@ if (nodeEnv === 'production') {
 app.use(cors(corsOptions));
 app.use(express.json());
 app.use("/api/users", userRoutes);
-app.use('/api/stats', require('./routes/statsRoutes'));
 app.use('/api', require('./routes/api'));
 
 const connectedClients = new Map();
@@ -522,34 +486,21 @@ function initWebSocket(server) {
         }
 
         case "send_message": {
-          try {
-            console.log('Received send_message action with payload:', payload);
-            const { roomId, text } = payload;
-            const room = rooms[roomId];
-            if (room) {
-              const messagePayload = {
+          console.log('Received send_message action with payload:', payload);
+          const { roomId, text } = payload;
+          const room = rooms[roomId];
+          if (room) {
+            const message = {
+              action: "new_message",
+              payload: {
                 username: ws.username,
                 text: text,
-              };
-              const message = {
-                action: "new_message",
-                payload: messagePayload,
-              };
-              console.log(`Broadcasting new_message to room ${roomId}:`, message);
-              broadcastToRoom(roomId, message);
-
-              // Log the message to a file
-              const logEntry = {
-                ...messagePayload,
-                timestamp: new Date().toISOString(),
-              };
-              await logChatMessage(roomId, logEntry);
-
-            } else {
-              console.log(`Room ${roomId} not found for send_message action.`);
-            }
-          } catch (e) {
-            console.error("!!! ERROR IN send_message CASE !!!", e);
+              },
+            };
+            console.log(`Broadcasting new_message to room ${roomId}:`, message);
+            broadcastToRoom(roomId, message);
+          } else {
+            console.log(`Room ${roomId} not found for send_message action.`);
           }
           break;
         }

@@ -1,10 +1,9 @@
 <script setup>
-import { ref, onMounted } from "vue";
-import { useRouter, useRoute } from "vue-router";
+import { ref } from "vue";
+import { useRouter } from "vue-router";
 import api from "@/api";
 
 const router = useRouter();
-const route = useRoute();
 
 // Variables d'estat
 const email = ref("");
@@ -12,13 +11,7 @@ const password = ref("");
 const username = ref("");
 const isRegistering = ref(false);
 const loading = ref(false);
-const errorMessage = ref(""); 
-
-// 🟢 NOU: Variable per la funcionalitat d'amagar/mostrar la contrasenya
-const showPassword = ref(false);
-
-
-
+const errorMessage = ref("");
 
 async function handleLogin() {
   errorMessage.value = "";

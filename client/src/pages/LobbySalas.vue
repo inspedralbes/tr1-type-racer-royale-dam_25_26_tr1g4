@@ -88,7 +88,6 @@
                     :key="sala.id"
                     :title="`Sala ${sala.id}`"
                     :subtitle="`Ejercicio: ${sala.exercise}`"
-                    class="list-item-style"
                   >
                     <template v-slot:append>
                       <v-chip class="mr-4" 

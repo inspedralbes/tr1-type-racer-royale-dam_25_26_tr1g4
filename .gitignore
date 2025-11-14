@@ -8,7 +8,6 @@
 **/dist-ssr/
 **/build/
 **/.output/
-**/server/chats/
 
 # === Variables d'Entorn (MOLT IMPORTANT) ===
 # No pugis mai els teus secrets, claus d'API o contrasenyes a un repositori.

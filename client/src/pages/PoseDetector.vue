@@ -20,6 +20,12 @@ const props = defineProps({
 const leaderboard = computed(() => wsStore.roomState?.players || []);
 const chatMessages = computed(() => wsStore.chatMessages);
 
+// Chat toggle state and function
+const chatOpen = ref(false);
+const toggleChat = () => {
+  chatOpen.value = !chatOpen.value;
+};
+
 // Refs for video and canvas elements
 const videoRef = ref(null);
 const canvasRef = ref(null);
@@ -143,7 +149,19 @@ onBeforeUnmount(() => {
       </div>
     </div>
 
-    <div class="chat-panel">
+    <!-- Chat Button -->
+    <v-btn
+      color="primary"
+      icon
+      size="large"
+      class="chat-toggle-button"
+      @click="toggleChat"
+    >
+      <v-icon>{{ chatOpen ? 'mdi-close' : 'mdi-chat' }}</v-icon>
+    </v-btn>
+
+    <!-- Chat Panel -->
+    <div class="chat-panel" :class="{ 'chat-panel-open': chatOpen }">
       <Chat
         :messages="chatMessages"
         :username="props.username"
@@ -298,11 +316,44 @@ onBeforeUnmount(() => {
   border-radius: 4px;
 }
 
+.chat-toggle-button {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 100; /* Ensure it's above everything */
+}
+
 .chat-panel {
-  position: absolute;
-  bottom: 15px; /* Ligeramente más abajo */
-  left: 15px; /* Ligeramente más a la derecha */
-  width: 350px;
-  z-index: 10;
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  width: 360px;
+  height: 450px;
+  z-index: 99;
+  transform: translateY(calc(100% + 20px));
+  transition: transform 0.3s ease-in-out;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  border-radius: 12px;
+  overflow: hidden;
+  /* Ensure a solid, opaque background */
+  background-color: #363636;
+  /* Remove any potential blur effect from parent elements */
+  backdrop-filter: none;
+}
+
+.chat-panel-open {
+  transform: translateY(0);
+}
+
+/* Media query for smaller screens (e.g., mobile phones) */
+@media (max-width: 600px) {
+  .chat-panel {
+    /* Full width on small screens, with a small margin */
+    width: calc(100% - 40px);
+    height: 70vh; /* Use a percentage of the viewport height */
+    right: 20px;
+    left: 20px;
+    bottom: 20px;
+  }
 }
 </style>

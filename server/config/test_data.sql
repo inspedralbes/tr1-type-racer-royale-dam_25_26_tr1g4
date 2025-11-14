@@ -1,4 +1,10 @@
 -- Dades de prova per a la base de dades
+-- Inserir usuaris de prova
+INSERT INTO users (username, password, email, wins, looses, score, best_score) VALUES
+('jugador1', '$2b$10$abcdefghijklmnopqrstuv', 'jugador1@test.com', 5, 2, 1000, 85.50),
+('jugador2', '$2b$10$abcdefghijklmnopqrstuv', 'jugador2@test.com', 3, 4, 750, 78.25),
+('jugador3', '$2b$10$abcdefghijklmnopqrstuv', 'jugador3@test.com', 7, 1, 1500, 92.75),
+('jugador4', '$2b$10$abcdefghijklmnopqrstuv', 'jugador4@test.com', 2, 5, 500, 65.00);
 
 -- Inserir exercicis de prova
 INSERT INTO exercises (name, description, difficulty, tren) VALUES

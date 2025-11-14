@@ -1,65 +1,14 @@
 <template>
   <v-app>
     <v-main>
-      <ProfileMenu v-if="isLoggedIn && !isGamePage" />
       <router-view />
     </v-main>
   </v-app>
 </template>
 
 <script setup>
-import { ref, onMounted, watch, computed } from 'vue';
-import { useRoute } from 'vue-router';
-import { useWebSocketStore } from '@/stores/websocket';
-import ProfileMenu from '@/components/ProfileMenu.vue';
-
-const wsStore = useWebSocketStore();
-const route = useRoute();
-const socketURL = "ws://localhost:3000";
-
-const isLoggedIn = ref(false);
-
-// Hide profile menu on game screen
-const isGamePage = computed(() => route.name === 'sala');
-
-const checkLoginStatus = () => {
-  isLoggedIn.value = !!localStorage.getItem('fithub-token');
-};
-
-onMounted(() => {
-  checkLoginStatus();
-  const username = localStorage.getItem('username');
-  if (username) {
-    wsStore.connect(`${socketURL}?username=${encodeURIComponent(username)}`);
-  }
-});
-
-// Watch for route changes to update login status (e.g., after logout)
-watch(() => route.path, () => {
-  checkLoginStatus();
-});
+// ELIMINA TOTES LES IMPORTACIONS DE VISTES O COMPONENTS GRANS
+// No importis PoseDetector, PoseFeatures, ni LoginView aquí.
 </script>
 
-<style>
-html, body {
-  height: 100%;
-  margin: 0;
-  padding: 0;
-}
-
-#app, .v-application {
-  min-height: 100vh !important; 
-  height: 100%; 
-  
-  background: #121212; 
-  background: linear-gradient(
-    135deg, 
-    rgba(25, 6, 46, 1) 0%,      
-    #000000ff 70%,      
-    rgba(62, 19, 63, 1) 100%     
-  ) !important; 
-  background-attachment: fixed;
-}
-
-
-</style>
+<style></style>
