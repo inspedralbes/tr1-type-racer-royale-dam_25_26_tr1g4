@@ -78,15 +78,16 @@ watch(
 
   display: flex;
   flex-direction: column;
-  height: 320px; /* Una mica més alt */
+  height: 100%; 
   padding: 16px;
-  color: #f0f0f0; /* Text clar per defecte */
+  padding-bottom: 60px; /* Added padding to the bottom */
+  color: #f0f0f0;
 }
 
 .messages-container {
   flex-grow: 1;
   overflow-y: auto;
-  padding-right: 8px; /* Espai per a la barra de scroll */
+  padding-right: 8px; 
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -138,7 +139,7 @@ watch(
 */
 
 .chat-input {
-  margin-top: 12px;
+  margin-top: 0; /* Eliminado el margen superior para reducir el espacio entre el contenedor de mensajes y el input */
   --v-field-background: rgba(0, 0, 0, 0.2) !important;
   --v-field-color: #ffffff !important;
   --v-field-label-color: rgba(255, 255, 255, 0.6) !important;
@@ -164,9 +165,8 @@ watch(
 
 /* Ajusta el padding de l'input intern */
 .chat-input :deep(.v-field__input) {
-  padding-top: 2px !important; /* Redueix el padding superior */
-  padding-bottom: 2px !important; /* Redueix el padding inferior */
-  min-height: auto !important; /* Permet que l'altura es redueixi */
+  padding-top: -1% !important; /* Redueix el padding superior */
+  padding-bottom: 1% !important; /* Redueix el padding inferior */
   color: #ffffff !important; /* Color del texto cuando se escribe */
   caret-color: #ffffff !important; /* Color del cursor (blanco) */
 }
@@ -184,10 +184,7 @@ watch(
 
 /* Arrodoniment de les cantonades del outline */
 .chat-input :deep(.v-field__outline__start) {
-  border-radius: 8px 0 0 8px !important;
-}
-.chat-input :deep(.v-field__outline__end) {
-  border-radius: 0 8px 8px 0 !important;
+  border-radius: 8px 8px 8px 8px !important;
 }
 
 /* Estils de l'icona d'enviar */
