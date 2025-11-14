@@ -24,7 +24,7 @@ async function logChatMessage(roomId, messageData) {
       const data = await fs.readFile(logFile, "utf8");
       logs = JSON.parse(data);
     } catch (error) {
-      // If file doesn't exist, it's fine, we'll create it.
+      // If file doesn't exist, it's fine, we'll create it
       if (error.code !== "ENOENT") {
         throw error; // Rethrow other errors
       }
