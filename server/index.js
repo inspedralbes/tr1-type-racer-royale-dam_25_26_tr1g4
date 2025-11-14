@@ -497,71 +497,6 @@ function initWebSocket(server) {
           }
           break;
         }
-
-        case "leave_room": {
-          const { roomId } = payload;
-          if (roomId && rooms[roomId]) {
-            const room = rooms[roomId];
-            const wasPublic = room.isPublic;
-            const playerIndex = room.players.findIndex((p) => p.ws === ws);
-
-            if (playerIndex !== -1) {
-              room.players.splice(playerIndex, 1);
-              ws.roomId = null; // Clear the roomId for this ws connection
-
-              if (room.players.length === 0) {
-                delete rooms[roomId];
-                console.log(`Sala ${roomId} eliminada por estar vacía.`);
-                if (wasPublic) {
-                  get_public_rooms();
-                }
-              } else {
-                if (room.owner === ws.username) {
-                  room.owner = room.players[0].username;
-                  console.log(
-                    `El propietario ha cambiado a ${room.owner} en la sala ${roomId}`
-                  );
-                }
-
-                const playersInfo = room.players.map((p) => ({
-                  username: p.username,
-                  ready: p.ready,
-                }));
-
-                const playerLeftPayload = {
-                  roomId: roomId,
-                  owner: room.owner,
-                  players: playersInfo,
-                  maxPlayers: MAX_PLAYERS_PER_ROOM,
-                };
-
-                broadcastToRoom(roomId, {
-                  action: "player_left",
-                  payload: playerLeftPayload,
-                });
-
-                console.log(
-                  `Jugador ${
-                    ws.username
-                  } ha salido de la sala ${roomId}. Jugadores: [${playersInfo
-                    .map((p) => p.username)
-                    .join(", ")}]`
-                );
-
-                if (wasPublic) {
-                  get_public_rooms();
-                }
-              }
-            }
-          }
-          if (roomId && connectedClients.has(roomId)) {
-            connectedClients.get(roomId).delete(ws);
-            if (connectedClients.get(roomId).size === 0) {
-              connectedClients.delete(roomId);
-            }
-          }
-          break;
-        }
       }
     });
 
@@ -675,4 +610,3 @@ async function startServer() {
 }
 
 startServer();
-
