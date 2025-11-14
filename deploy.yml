@@ -53,7 +53,7 @@ jobs:
 
             # Stop existing services and remove the database volume to ensure a clean start
             echo "Stopping services and removing old database volume..."
-            docker compose -f docker-compose.prod.yml down -v
+            docker compose -f docker-compose.prod.yml down -v --remove-orphans
 
             # Run docker-compose for production
             echo "Starting docker-compose..."
