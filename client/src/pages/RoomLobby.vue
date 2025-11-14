@@ -253,7 +253,7 @@ onMounted(() => {
 });
 
 onBeforeUnmount(() => {
-  wsStore.resetRoomState();
+  wsStore.leaveRoom();
 });
 </script>
 
@@ -266,3 +266,4 @@ onBeforeUnmount(() => {
   z-index: 10;
 }
 </style>
+
