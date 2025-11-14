@@ -13,7 +13,10 @@ const isRegistering = ref(false);
 const loading = ref(false);
 const errorMessage = ref(""); 
 
+// 🟢 NOU: Variable per la funcionalitat d'amagar/mostrar la contrasenya
 const showPassword = ref(false);
+
+
 
 
 async function handleLogin() {

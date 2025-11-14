@@ -30,7 +30,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="global-leaderboard-container">
+  <div class="global-leaderboard-container" >
     <h2>🥇 Rècords de Repeticions</h2>
 
     <div v-if="isLoading" class="loading-message">
