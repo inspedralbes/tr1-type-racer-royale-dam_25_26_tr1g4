@@ -13,10 +13,7 @@ const isRegistering = ref(false);
 const loading = ref(false);
 const errorMessage = ref(""); 
 
-// 🟢 NOU: Variable per la funcionalitat d'amagar/mostrar la contrasenya
 const showPassword = ref(false);
-
-// No es necessita lògica addicional per a la barra de navegació simple
 
 
 async function handleLogin() {
@@ -148,7 +145,7 @@ function handleSubmit() {
 
             <v-form @submit.prevent="handleSubmit">
               
-              <v-text-field
+              <v-text-field 
                 v-if="isRegistering"
                 v-model="username"
                 label="Nom d'Usuari"
@@ -234,28 +231,52 @@ function handleSubmit() {
 
 
 <style scoped>
+
+.primary-action-btn{
+  font-family: 'Cutive Mono', monospace !important; 
+    font-weight: 400 ;
+    letter-spacing: 1px;
+
+}
 .frosted-card {
   
   box-shadow: 
     0 4px 6px -1px rgba(0, 0, 0, 0.2), 
     0 10px 15px -3px rgba(0, 0, 0, 0.4); 
   
-  border: 1px solid #402c42; /* Darker border color */
-  border-radius: 8px; /* Slightly rounded corners */
-
-  /* 4. Text Color: Use a high-readability off-white for contrast */
+  border: 1px solid #402c42; 
+  border-radius: 8px; 
   color: #fafcffff; 
-  
-  /* 5. Internal Spacing (Crucial for Professionalism) */
-  padding: 24px 32px; /* Generous padding */
-
-}
-
-.frosted-card {
-  
+  padding: 24px 32px; 
+  position: relative;
+  overflow: hidden;
     transition: transform 0.3s ease-out, box-shadow 0.3s ease-out; 
+
 }
 
+.frosted-card::after{ 
+  content: '';
+    position: absolute;
+    top: 0;
+    left: -150%; 
+    height: 100%;
+
+    background: linear-gradient(
+        45deg, 
+        transparent 0%, 
+       rgba(255, 255, 255, 0.08) 40%, 
+        rgba(255, 255, 255, 0.08) 60%,
+        transparent 100%
+    );
+    transform: skewX(-45deg);
+    z-index: 10;
+   transition: none;
+}
+
+.frosted-card:hover::after{
+    transform: translateX(350%) skewX(-45deg);; 
+    transition: transform 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
 
 .frosted-card:hover {
 
@@ -277,7 +298,7 @@ function handleSubmit() {
 }
 
 .frosted-card .v-input__control {
-    background-color: #2a2a2a !important; /* Fons de l'input */
+    background-color: #2a2a2a !important; 
     border-radius: 4px;
     padding: 5px 10px;
 }
@@ -289,14 +310,14 @@ function handleSubmit() {
 
 .primary-action-btn:hover {
     opacity: 0.9;
-    transform: translateY(-1px); /* Efecte 3D subtil */
+    transform: translateY(-1px); 
 border-bottom: 2px solid hsla(151, 100%, 95%, 1.00); 
 
 }
 
 
 .secondary-action-btn:hover {
-    color: #ffffff !important; /* Es torna blanc pur */
+    color: #ffffff !important; 
 }
 
 .login-button-gradient {
@@ -321,11 +342,19 @@ border-bottom: 2px solid hsla(151, 100%, 95%, 1.00);
 }
 
 .v-card-title {
-
     color: hsla(276, 70%, 91%, 0.897) !important;
-
     position: relative;
-    padding-bottom: 20px; /* Space for the accent line */
+    padding-bottom: 20px; 
+       font-family: 'Cutive Mono', monospace !important; 
+    font-weight: 200 ;
+    letter-spacing: 1px;
+}
+
+.v-text-field{
+    font-family: 'Cutive Mono', monospace !important; 
+    font-weight: 400 ;
+    letter-spacing: 1px;
+
 }
 
 .v-toolbar-title {
