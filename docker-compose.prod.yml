@@ -10,24 +10,12 @@ services:
         VITE_SOCKET_URL: ${VITE_SOCKET_URL}
     ports:
       - "80:80"
-      - "443:443"
-    volumes:
-      - ./nginx.conf:/etc/nginx/conf.d/default.conf
-      - certbot_conf:/etc/letsencrypt
-      - certbot_www:/var/www/certbot
     depends_on:
       backend:
         condition: service_started
     networks:
       - app-network
     restart: unless-stopped # Reinicia Nginx si falla.
-
-  certbot:
-    image: certbot/certbot
-    volumes:
-      - certbot_conf:/etc/letsencrypt
-      - certbot_www:/var/www/certbot
-    command: sh -c "while :; do sleep 12h & wait $${!}; certbot renew; done"
 
   backend:
     build: ./server
@@ -95,5 +83,3 @@ networks:
 
 volumes:
   mysql-data:
-  certbot_conf:
-  certbot_www:
