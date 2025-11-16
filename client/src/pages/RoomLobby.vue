@@ -212,7 +212,7 @@ watch(
   () => wsStore.gameStarting,
   (isStarting) => {
     if (isStarting && wsStore.roomState?.roomId === roomId.value) {
-      const selectedExercise = exerciseItems.value.find(e => e.id === selectedExerciseId.value);
+      const selectedExercise = exerciseItems.value.find(e => e.id === wsStore.selectedExerciseId);
       // Use the exercise label for the route, defaulting to 'squats'. Make it lowercase to be safe.
       const exerciseName = selectedExercise ? selectedExercise.label.toLowerCase() : 'squats';
       router.push({ name: "sala", params: { id: roomId.value, exercise: exerciseName } });

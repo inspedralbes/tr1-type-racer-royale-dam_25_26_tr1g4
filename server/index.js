@@ -409,7 +409,7 @@ function initWebSocket(server) {
         }
 
         case "start_game": {
-          const { roomId } = payload;
+          const { roomId, exerciseId } = payload;
           const room = rooms[roomId];
 
           if (room && room.owner === ws.username) {
@@ -417,9 +417,9 @@ function initWebSocket(server) {
 
             if (allReady && room.players.length > 0) {
               room.status = "playing";
-              broadcastToRoom(roomId, { action: "game_starting" });
+              broadcastToRoom(roomId, { action: "game_starting", payload: { exerciseId } });
               console.log(
-                `Game starting in room ${roomId} by owner ${ws.username}`
+                `Game starting in room ${roomId} by owner ${ws.username} with exercise ${exerciseId}`
               );
 
               if (room.isPublic) {

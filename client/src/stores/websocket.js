@@ -11,6 +11,7 @@ export const useWebSocketStore = defineStore('websocket', {
     gameStarting: false,
     username: localStorage.getItem('username') || null,
     chatMessages: [], // New state for chat messages
+    selectedExerciseId: null,
   }),
   actions: {
     connect(url) {
@@ -78,7 +79,7 @@ export const useWebSocketStore = defineStore('websocket', {
           this.publicRooms = data.payload;
           break;
         case 'game_starting':
-          this.handleGameStarting();
+          this.handleGameStarting(data.payload);
           break;
         case 'room_full':
           console.log(`Room ${data.payload.roomId} is full.`);
@@ -93,8 +94,11 @@ export const useWebSocketStore = defineStore('websocket', {
       }
     },
 
-    handleGameStarting() {
+    handleGameStarting(payload) {
       this.gameStarting = true;
+      if (payload && payload.exerciseId) {
+        this.selectedExerciseId = payload.exerciseId;
+      }
     },
 
     disconnect() {
@@ -129,6 +133,7 @@ export const useWebSocketStore = defineStore('websocket', {
         this.roomState = null;
         this.gameStarting = false;
         this.chatMessages = [];
+        this.selectedExerciseId = null;
     }
   },
 });
