@@ -9,7 +9,7 @@ export const useWebSocketStore = defineStore('websocket', {
     publicRooms: [],
     error: null,
     gameStarting: false,
-    username: null,
+    username: localStorage.getItem('username') || null,
     chatMessages: [], // New state for chat messages
   }),
   actions: {
@@ -17,6 +17,7 @@ export const useWebSocketStore = defineStore('websocket', {
       // Extract username from URL for storing it
       const urlParams = new URLSearchParams(url.split('?')[1]);
       this.username = urlParams.get('username');
+      localStorage.setItem('username', this.username);
 
       if (this.socket && this.isConnected) {
         return;
@@ -100,6 +101,8 @@ export const useWebSocketStore = defineStore('websocket', {
       if (this.socket) {
         this.socket.close();
       }
+      localStorage.removeItem('username');
+      this.username = null;
     },
 
     sendMessage(message) {

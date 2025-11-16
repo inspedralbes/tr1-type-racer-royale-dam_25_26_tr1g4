@@ -239,22 +239,41 @@ async function fetchExercises() {
   }
 }
 
+
 onMounted(() => {
-  // If the user lands here on a refresh, the roomState will be null.
-  // Redirect them to the lobby to prevent being in a broken state.
-  if (!wsStore.roomState) {
-    router.push('/lobby');
-    return;
+  wsStore.gameStarting = false;
+
+  if (!wsStore.isConnected) {
+    if (wsStore.username) {
+      const wsUrl = `${import.meta.env.VITE_WEBSOCKET_URL}?username=${
+        wsStore.username
+      }`;
+      wsStore.connect(wsUrl);
+    } else {
+      router.push("/lobby");
+      return;
+    }
   }
 
-  wsStore.gameStarting = false;
-  console.log(`Entrando en la sala ${roomId.value}`);
   fetchExercises();
 });
 
-onBeforeUnmount(() => {
-  wsStore.leaveRoom();
-});
+// Watch for connection status to join room or redirect
+watch(
+  () => wsStore.isConnected,
+  (isConnected) => {
+    if (isConnected && !wsStore.roomState) {
+      wsStore.sendMessage({
+        action: "join_room",
+        payload: { roomId: roomId.value },
+      });
+    } else if (!isConnected) {
+      // Redirect to lobby if connection is lost
+      router.push("/lobby");
+    }
+  },
+  { immediate: true }
+);
 </script>
 
 <style scoped>
