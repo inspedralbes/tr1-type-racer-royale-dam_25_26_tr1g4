@@ -117,22 +117,29 @@ async function processCompetitionEnd(roomId) {
 
   if (participantArray.length === 0) return;
 
+  console.log(
+    "Final participants array:",
+    JSON.stringify(
+      participantArray.map((p) => ({ username: p.username, reps: p.reps })),
+      null,
+      2
+    )
+  );
+
   participantArray.sort((a, b) => (b.reps || 0) - (a.reps || 0));
   const winner = participantArray[0];
 
-  const victoryMessage = {
-    action: "competition_ended",
+  const gameOverMessage = {
+    action: "game_over",
     payload: {
-      winnerUsername: winner.username,
-      winnerReps: winner.reps,
-      finalLeaderboard: participantArray.map((p) => ({
+      leaderboard: participantArray.map((p) => ({
         username: p.username,
         reps: p.reps || 0,
       })),
     },
   };
 
-  broadcastToRoom(roomId, victoryMessage);
+  broadcastToRoom(roomId, gameOverMessage);
   console.log(
     `🎉 COMPETICIÓ ACABADA a la sala ${roomId}. Guanyador: ${winner.username}`
   );
@@ -222,6 +229,7 @@ function initWebSocket(server) {
             isPublic: false,
             status: "waiting",
             maxPlayers: MAX_PLAYERS_PER_ROOM,
+            readyGamePlayers: new Set(),
           };
 
           ws.roomId = roomId;
@@ -265,6 +273,7 @@ function initWebSocket(server) {
             exercise: exercise_text,
             status: "waiting",
             maxPlayers: MAX_PLAYERS_PER_ROOM,
+            readyGamePlayers: new Set(),
           };
 
           ws.roomId = roomId;
@@ -417,7 +426,10 @@ function initWebSocket(server) {
 
             if (allReady && room.players.length > 0) {
               room.status = "playing";
-              broadcastToRoom(roomId, { action: "game_starting", payload: { exerciseId } });
+              broadcastToRoom(roomId, {
+                action: "game_starting",
+                payload: { exerciseId },
+              });
               console.log(
                 `Game starting in room ${roomId} by owner ${ws.username} with exercise ${exerciseId}`
               );
@@ -432,6 +444,30 @@ function initWebSocket(server) {
                   payload: { message: "No todos los jugadores están listos." },
                 })
               );
+            }
+          }
+          break;
+        }
+
+        case "player_game_ready": {
+          const { roomId } = payload;
+          const room = rooms[roomId];
+          const player = room ? room.players.find((p) => p.ws === ws) : null;
+
+          if (player && room) {
+            room.readyGamePlayers.add(ws.username);
+
+            if (room.readyGamePlayers.size === room.players.length) {
+              // All players are ready, start the sequence
+              broadcastToRoom(roomId, { action: "all_players_ready" });
+
+              setTimeout(() => {
+                broadcastToRoom(roomId, { action: "start_game_countdown" });
+
+                setTimeout(() => {
+                  processCompetitionEnd(roomId); // This will send the 'game_over' message
+                }, 60000); // 60 seconds
+              }, 10000); // 10 seconds
             }
           }
           break;
@@ -675,4 +711,3 @@ async function startServer() {
 }
 
 startServer();
-

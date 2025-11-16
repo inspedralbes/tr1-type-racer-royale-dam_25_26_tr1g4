@@ -12,6 +12,7 @@ export const useWebSocketStore = defineStore('websocket', {
     username: localStorage.getItem('username') || null,
     chatMessages: [], // New state for chat messages
     selectedExerciseId: null,
+    lastMessage: null,
   }),
   actions: {
     connect(url) {
@@ -52,6 +53,7 @@ export const useWebSocketStore = defineStore('websocket', {
       this.socket.onmessage = (event) => {
         const data = JSON.parse(event.data);
         console.log('Server message:', data);
+        this.lastMessage = data;
         this.handleMessage(data);
       };
     },

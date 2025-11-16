@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, onBeforeUnmount, computed } from "vue";
+import { ref, onMounted, onBeforeUnmount, computed, watch } from "vue";
 import Chat from "@/components/Chat.vue";
 import { useWebSocketStore } from "@/stores/websocket";
 import { PoseDetectionService } from "@/services/PoseDetectionService";
@@ -15,6 +15,15 @@ const props = defineProps({
   username: String,
   exercise: String, // The name of the exercise from the route
 });
+
+// Game state
+const isCameraReady = ref(false);
+const areAllPlayersReady = ref(false);
+const preparationTime = ref(10);
+const gameTime = ref(60);
+const isGameRunning = ref(false);
+const isGameFinished = ref(false);
+const finalLeaderboard = ref([]);
 
 // WebSocket related computed properties
 const leaderboard = computed(() => wsStore.roomState?.players || []);
@@ -59,6 +68,7 @@ const handleSendMessage = (message) => {
 
 // --- Exercise Logic Callbacks ---
 const handleRepetition = () => {
+  if (!isGameRunning.value) return;
   repCounter.value++;
   sendRepetitionUpdate(repCounter.value);
 };
@@ -81,6 +91,28 @@ const handlePoseEstimate = (keypoints) => {
   }
 };
 
+// --- Timer Functions ---
+function startPreparationTimer() {
+  feedbackMsg.value = `¡Prepárate! La partida empieza en ${preparationTime.value}s`;
+  let interval = setInterval(() => {
+    preparationTime.value--;
+    feedbackMsg.value = `¡Prepárate! La partida empieza en ${preparationTime.value}s`;
+    if (preparationTime.value <= 0) {
+      clearInterval(interval);
+      feedbackMsg.value = "¡YA!";
+    }
+  }, 1000);
+}
+
+function startGameTimer() {
+  let interval = setInterval(() => {
+    gameTime.value--;
+    if (gameTime.value <= 0) {
+      clearInterval(interval);
+    }
+  }, 1000);
+}
+
 // --- Lifecycle Hooks ---
 onMounted(async () => {
   if (videoRef.value && canvasRef.value) {
@@ -92,6 +124,11 @@ onMounted(async () => {
     const cameraStarted = await poseDetectionService.startCamera();
     
     if (cameraStarted) {
+      isCameraReady.value = true;
+      wsStore.sendMessage({
+        action: 'player_game_ready',
+        payload: { roomId: props.sessionId },
+      });
       poseDetectionService.loop();
     }
   }
@@ -102,258 +139,683 @@ onBeforeUnmount(() => {
     poseDetectionService.stop();
   }
 });
+
+// Watch for messages from the server
+watch(() => wsStore.lastMessage, (newMessage) => {
+  if (!newMessage) return;
+
+  switch (newMessage.action) {
+    case 'all_players_ready':
+      areAllPlayersReady.value = true;
+      startPreparationTimer();
+      break;
+    case 'start_game_countdown':
+      isGameRunning.value = true;
+      startGameTimer();
+      break;
+    case 'game_over':
+      isGameRunning.value = false;
+      isGameFinished.value = true;
+      finalLeaderboard.value = newMessage.payload.leaderboard;
+      break;
+  }
+});
 </script>
 
 <template>
+
   <div class="page-container">
-    <div class="video-container">
-      <video
-        ref="videoRef"
-        playsinline
-        muted
-        autoplay
-        class="video-feed"
-      ></video>
+
+    <!-- Waiting for players overlay -->
+
+    <div v-if="!areAllPlayersReady" class="overlay">
+
+      <div class="overlay-content">
+
+        <h2 class="overlay-title">Esperando al resto de jugadores...</h2>
+
+        <p v-if="!isCameraReady">Iniciando cámara y modelo...</p>
+
+        <p v-else>¡Ya estás listo!</p>
+
+        <v-progress-circular indeterminate color="primary" size="64"></v-progress-circular>
+
+      </div>
+
     </div>
+
+
+
+    <!-- Game Finished Overlay -->
+
+    <div v-if="isGameFinished" class="overlay">
+
+      <div class="overlay-content results-panel">
+
+        <h2 class="overlay-title">¡Partida Terminada!</h2>
+
+        <h3 class="leaderboard-title">Resultados Finales</h3>
+
+        <ol class="leaderboard-list">
+
+          <li
+
+            v-for="(p, index) in finalLeaderboard"
+
+            :key="p.username"
+
+            :class="{ 'highlight-self': p.username === props.username }"
+
+          >
+
+            <strong>{{ index + 1 }}. {{ p.username }}</strong>
+
+            : {{ p.reps }}
+
+          </li>
+
+        </ol>
+
+        <v-btn color="primary" @click="$router.push('/lobby')" class="mt-4">
+
+          Volver al Lobby
+
+        </v-btn>
+
+      </div>
+
+    </div>
+
+
+
+    <div class="video-container">
+
+      <video
+
+        ref="videoRef"
+
+        playsinline
+
+        muted
+
+        autoplay
+
+        class="video-feed"
+
+      ></video>
+
+    </div>
+
+
 
     <div class="sidebar">
+
       <canvas ref="canvasRef" class="skeleton-canvas"></canvas>
 
+
+
       <div class="ui-panel">
-        <h3 class="title">Full Body Squat</h3>
+
+        <h3 class="title">{{ exercise }}</h3>
+
+
+
+        <!-- Game Timer -->
+
+        <div v-if="isGameRunning" class="game-timer">
+
+          Tiempo restante: {{ gameTime }}s
+
+        </div>
+
+
 
         <div class="counter-box">
+
           <div class="counter-value">{{ repCounter }}</div>
+
           <div class="counter-label">Repeticiones</div>
+
         </div>
+
+
 
         <div class="feedback-box">
+
           <div class="feedback-message">{{ feedbackMsg }}</div>
+
         </div>
+
+
 
         <div class="leaderboard-panel">
+
           <h4 class="leaderboard-title">
+
             Leaderboard (Sala: {{ props.sessionId }})
+
           </h4>
+
           <ol class="leaderboard-list">
+
             <li
+
               v-for="(p, index) in leaderboard"
+
               :key="p.username"
+
               :class="{ 'highlight-self': p.username === props.username }"
+
             >
+
               <strong>{{ index + 1 }}. {{ p.username }}</strong
+
               >: {{ p.reps }}
+
             </li>
+
           </ol>
+
         </div>
+
       </div>
+
     </div>
+
+
 
     <!-- Chat Button -->
+
     <v-btn
+
       color="primary"
+
       icon
+
       size="large"
+
       class="chat-toggle-button"
+
       @click="toggleChat"
+
     >
+
       <v-icon>{{ chatOpen ? 'mdi-close' : 'mdi-chat' }}</v-icon>
+
     </v-btn>
 
+
+
     <!-- Chat Panel -->
+
     <div class="chat-panel" :class="{ 'chat-panel-open': chatOpen }">
+
       <Chat
+
         :messages="chatMessages"
+
         :username="props.username"
+
         @send-message="handleSendMessage"
+
       />
+
     </div>
+
   </div>
+
 </template>
 
+
+
 <style scoped>
+
 .page-container {
+
   display: flex;
+
   width: 100vw;
+
   height: 100vh;
+
   background: #111;
+
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica,
+
     Arial, sans-serif;
+
   color: white;
+
 }
+
+
+
+.overlay {
+
+  position: fixed;
+
+  top: 0;
+
+  left: 0;
+
+  width: 100%;
+
+  height: 100%;
+
+  background: rgba(0, 0, 0, 0.8);
+
+  display: flex;
+
+  justify-content: center;
+
+  align-items: center;
+
+  z-index: 200;
+
+  color: white;
+
+}
+
+
+
+.overlay-content {
+
+  text-align: center;
+
+  padding: 40px;
+
+  background: #1e1e1e;
+
+  border-radius: 12px;
+
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+
+}
+
+
+
+.overlay-title {
+
+  font-size: 2rem;
+
+  margin-bottom: 20px;
+
+}
+
+
+
+.results-panel .leaderboard-list {
+
+  text-align: left;
+
+  margin-top: 20px;
+
+  width: 300px;
+
+}
+
+
+
+.game-timer {
+
+  font-size: 1.5rem;
+
+  font-weight: bold;
+
+  color: #ffc107;
+
+  margin-bottom: 10px;
+
+}
+
+
 
 .video-container {
+
   flex: 3; /* Ocupa 3/4 parts de l'espai */
+
   display: flex;
+
   justify-content: center;
+
   align-items: center;
+
   background: #000;
+
   padding: 20px;
+
   box-sizing: border-box;
+
 }
+
+
 
 .video-feed {
+
   width: 100%;
+
   height: 100%;
+
   object-fit: contain; /* 'contain' per evitar deformacions */
+
   border-radius: 12px;
+
 }
+
+
 
 .sidebar {
+
   flex: 1; /* Ocupa 1/4 part de l'espai */
+
   display: flex;
+
   flex-direction: column;
+
   background: #1e1e1e;
+
   padding: 20px;
+
   box-sizing: border-box;
+
   gap: 20px;
+
   height: 100vh;
+
   overflow-y: auto;
+
 }
+
+
 
 .skeleton-canvas {
+
   width: 100%;
+
   aspect-ratio: 16 / 9; /* Mantenir la proporció del vídeo */
+
   background: #000;
+
   border-radius: 8px;
+
 }
+
+
 
 .ui-panel {
+
   display: flex;
+
   flex-direction: column;
+
   align-items: center;
+
   gap: 20px;
+
   width: 100%;
+
 }
+
+
 
 .title {
+
   font-size: 1.5rem;
+
   font-weight: 600;
+
   text-align: center;
+
   margin: 0;
+
   color: #f5f5f5;
+
 }
+
+
 
 .counter-box {
+
   width: 150px;
+
   height: 150px;
+
   border-radius: 50%;
+
   border: 8px solid #00c8ff;
+
   display: flex;
+
   flex-direction: column;
+
   justify-content: center;
+
   align-items: center;
+
   background: rgba(0, 0, 0, 0.3);
+
 }
+
+
 
 .counter-value {
+
   font-size: 4.5rem;
+
   font-weight: 700;
+
   line-height: 1;
+
 }
+
+
 
 .counter-label {
+
   font-size: 0.9rem;
+
   text-transform: uppercase;
+
   letter-spacing: 1px;
+
   color: #ccc;
+
   margin-top: 5px;
+
 }
+
+
 
 .feedback-box {
+
   width: 100%;
+
   background: rgba(0, 0, 0, 0.3);
+
   padding: 16px;
+
   border-radius: 8px;
+
   text-align: center;
+
 }
+
+
 
 .feedback-message {
+
   font-size: 1.1rem;
+
   font-weight: 600;
+
   color: #ffc107;
+
   min-height: 1.25em;
+
 }
+
+
 
 .leaderboard-panel {
+
   width: 100%;
+
   padding: 16px;
+
   background: rgba(0, 0, 0, 0.3);
+
   border-radius: 8px;
+
 }
+
+
 
 .leaderboard-title {
+
   font-size: 1.1rem;
+
   margin: 0 0 10px 0;
+
   color: #00c8ff;
+
   text-align: center;
+
 }
+
+
 
 .leaderboard-list {
+
   list-style: none;
+
   padding: 0;
+
   margin: 0;
+
   font-size: 1rem;
+
 }
+
+
 
 .leaderboard-list li {
+
   padding: 5px 0;
+
   display: flex;
+
   justify-content: space-between;
+
   border-bottom: 1px dashed rgba(255, 255, 255, 0.1);
+
 }
+
+
 
 .leaderboard-list li:last-child {
+
   border-bottom: none;
+
 }
+
+
 
 .highlight-self {
+
   font-weight: bold;
+
   color: #ffc107;
+
   background-color: rgba(255, 255, 255, 0.1);
+
   padding: 5px;
+
   margin: 2px 0;
+
   border-radius: 4px;
+
 }
+
+
 
 .chat-toggle-button {
+
   position: fixed;
+
   bottom: 20px;
+
   right: 20px;
+
   z-index: 100; /* Ensure it's above everything */
+
 }
+
+
 
 .chat-panel {
+
   position: fixed;
+
   bottom: 20px;
+
   right: 20px;
+
   width: 360px;
+
   height: 450px;
+
   z-index: 99;
+
   transform: translateY(calc(100% + 20px));
+
   transition: transform 0.3s ease-in-out;
+
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+
   border-radius: 12px;
+
   overflow: hidden;
+
   /* Ensure a solid, opaque background */
+
   background-color: #363636;
+
   /* Remove any potential blur effect from parent elements */
+
   backdrop-filter: none;
+
 }
+
+
 
 .chat-panel-open {
+
   transform: translateY(0);
+
 }
 
+
+
 /* Media query for smaller screens (e.g., mobile phones) */
+
 @media (max-width: 600px) {
+
   .chat-panel {
+
     /* Full width on small screens, with a small margin */
+
     width: calc(100% - 40px);
+
     height: 70vh; /* Use a percentage of the viewport height */
+
     right: 20px;
+
     left: 20px;
+
     bottom: 20px;
+
   }
+
 }
+
 </style>
