@@ -8,7 +8,7 @@ const isLoading = ref(true);
 // URL Api completa 
 const API_URL = 'http://localhost:3000/api/leaderboard/global'; 
 
-const mockLeaderboard = [
+/*const mockLeaderboard = [
     { username: "CodeMasterCat", max_reps: 980 }, // Serà rank-1
     { username: "DarkByte", max_reps: 750 },    // Serà rank-2
     { username: "User_404", max_reps: 612 },    // Serà rank-3
@@ -17,26 +17,26 @@ const mockLeaderboard = [
 ];
 
 
-
+*/
 async function fetchGlobalLeaderboard() {
     isLoading.value = true;
     
     // Simulem un retard per veure l'estat de "Carregant"
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    //await new Promise(resolve => setTimeout(resolve, 1000));
 
     try {
-        // --- Codi real COMENTAT ---
-        /*
+        
+        
         const resp = await fetch(API_URL);
         const data = await resp.json();
 
         if (data && data.success) {
             globalLeaderboard.value = data.leaderboard;
         }
-        */
+        
         
         // --- Utilitzem les dades de MOCK per a visualització ---
-        globalLeaderboard.value = mockLeaderboard;
+        //globalLeaderboard.value = mockLeaderboard;
 
         
     } catch (error) {
