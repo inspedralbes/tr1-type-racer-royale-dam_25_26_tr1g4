@@ -245,9 +245,9 @@ onMounted(() => {
 
   if (!wsStore.isConnected) {
     if (wsStore.username) {
-      const wsUrl = `${import.meta.env.VITE_WEBSOCKET_URL}?username=${
-        wsStore.username
-      }`;
+      const wsUrl = `${import.meta.env.VITE_WEBSOCKET_URL}/${
+        roomId.value
+      }?username=${wsStore.username}`;
       wsStore.connect(wsUrl);
     } else {
       router.push("/lobby");
