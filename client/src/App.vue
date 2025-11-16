@@ -16,6 +16,7 @@ html, body {
   height: 100%;
   margin: 0;
   padding: 0;
+  overflow-x: hidden; /* Evitar scroll horitzontal no desitjat */
 }
 
 /* 2. Aplicar el degradat al contenidor de l'App (Mantenir el teu codi) */
@@ -30,12 +31,12 @@ html, body {
     #21004C 70%,      
     #4A148C 100%     
   ) !important; /* FORÇA EL GRADIENT AMB MÀXIMA PRIORITAT */
-  background-attachment: fixed;
+  background-attachment: fixed !important;
 }
 
-/* 3. 🚨 PAS CRÍTIC: Neutralitzar el fons del contenidor principal de contingut */
-.v-main {
-  /* Si el teu fons de tema és blanc, el v-main el pot estar aplicant. */
+/* 🔥 PAS 2: ASSEGURA QUE ELS CONTENIDORS INTERNS SÓN TRANSPARENTS */
+.v-main, .v-application__wrap {
+  /* Això sol ser la causa principal del problema de fons blanc */
   background-color: transparent !important; 
 }
 </style>

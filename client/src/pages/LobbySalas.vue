@@ -1,148 +1,127 @@
-<template>
-  <v-container class="pb-0 pt-15">
-    <v-row justify="center">
-      <v-col cols="12" md="6" sm="8">
-        <v-card class="frosted-card elevation-12" hover rounded="lg" 
-          color="#000000c4"
-          >
+<template class="lobby">
+  <div>
+    <v-app-bar
+      class="minimal-nav" 
+      dark 
+      flat
+      height="58"> 
+      
+      <v-toolbar-title class="text-h5 nav-title font-weight-light">
+        <v-icon left color="rgba(0, 0, 0, 1)">mdi-run-fast</v-icon> 
+        FitAI<span class="font-weight-bold ml-1">AI</span>
+      </v-toolbar-title>
 
-          <v-tabs v-model="tab" bg-color="transparent" fixed-tabs color="#ffffff" class="cutive-mono-tabs">
-            <v-tab value="private">Sala Privada</v-tab>
-            <v-tab value="public">Salas Públicas</v-tab>
-          </v-tabs>
+      <v-spacer></v-spacer>
 
-          <v-window v-model="tab">
-            <v-window-item value="private">
-              <v-card-text class="pa-5">
+      <v-btn text class="nav-item">
+        INICI
+      </v-btn>
 
-                <v-btn @click="crearSala"
-                block  
-                size="large"
-                class="mb-6 primary-action-btn" 
-                color="rgba(168, 160, 160, 1)" 
-                :loading="loading"
-                rounded="lg"
-                elevation="6"
-                variant="tonal"
-                >
-                  Crear Sala Privada
-                </v-btn>
-                <v-divider class="mb-6 card-divider-style"></v-divider>
-                <h3 class="mb-4 v-card-title h3-style">O Unirse a Sala Existente</h3>
+      <v-btn text class="nav-item">
+        PANELL
+      </v-btn>
+      
+      <v-btn text class="nav-item">
+        PLANS
+      </v-btn>
 
-                <v-alert v-if="errorMessage" type="error" class="mb-4" closable @click:close="errorMessage = ''" color="#FF5252" variant="tonal">
-                  {{ errorMessage }}
-                </v-alert>
+      <v-btn 
+        fab 
+        small 
+        class="nav-profile-btn"
+      >
+        <v-icon>mdi-account</v-icon>
+      </v-btn>
 
-                <v-form @submit.prevent="unirseSalaPrivada">
-                  <v-text-field
-                    v-model="salaPrivada.id"
-                    label="ID de la Sala"
-                    prepend-inner-icon="mdi-pound"
-                    variant="outlined"
-                    class="mb-3 v-text-field"
-                    :disabled="loading"
-                    required
-                    dark
-                    filled
-                  ></v-text-field>
+    </v-app-bar>
 
-                  <v-btn 
-                  type="submit" 
-                  block 
-                  color="rgba(168, 160, 160, 1)" 
-                   size="large" 
-                   :loading="loading"
-                   class="mb-6 primary-action-btn"
-                   variant="tonal"
-                   elevation="6"            
+    </div>
+<v-container class="pb-0 pt-15" style="background-color: transparent;">
+<v-row justify="center" align-start>
+<v-col cols="12" md="6" sm="12" class="pa-0 pa-md-2">
+<v-card class="frosted-card elevation-12" hover rounded="lg" 
+ color="#000000c4"
 >
-                    Unirse
-                  </v-btn>
-                </v-form>
-              </v-card-text>
-            </v-window-item>
+<v-tabs v-model="tab" bg-color="transparent" fixed-tabs color="#ffffff" class="cutive-mono-tabs">
+<v-tab value="private">Sala Privada</v-tab>
+<v-tab value="public">Salas Públicas</v-tab>
+</v-tabs>
 
-            <v-window-item value="public">
-              <v-card-text class="pa-5">
+ <v-window v-model="tab">
+<v-window-item value="private">
+<v-card-text class="pa-5">
+    <v-btn @click="crearSala" block size="large" class="mb-6 primary-action-btn" color="rgba(168, 160, 160, 1)" :loading="loading" rounded="lg" elevation="6" variant="tonal">
+    Crear Sala Privada
+    </v-btn>
+    <v-divider class="mb-4 card-divider-style"></v-divider>
+    <v-alert v-if="errorMessage" type="error" class="mb-4" closable @click:close="errorMessage = ''" color="#FF5252" variant="tonal">
+    {{ errorMessage }}
+    </v-alert>
+    
+    <v-form @submit.prevent="unirseSalaPrivada">
+        <h3 class="mb-3" style="font-family: 'Cutive Mono', monospace; color: #ffffff;">Unirse a Sala Existent</h3>
+        <br></br>
+        <br></br>
+        <v-text-field v-model="salaPrivada.id" label="ID de la Sala" prepend-inner-icon="mdi-pound" variant="outlined" class="mb-3 v-text-field" :disabled="loading" required dark filled></v-text-field>
+        <br></br>
+        <v-btn type="submit" block color="rgba(168, 160, 160, 1)" size="large" :loading="loading" class="mb-6 primary-action-btn" variant="tonal" elevation="6">
+        Unirse
+        </v-btn>
+    </v-form>
 
-                <v-btn 
-                @click="crearSalaPublica" 
-                block 
-                color="#ffffff" 
-                size="large"
-                 class="mb-6 primary-action-btn"
-                  :loading="loading"
-                  variant="flat">
+    <v-divider class="mb-4 card-divider-style"></v-divider>
+    
+    
 
-                  Crear Sala Pública
-                </v-btn>
+    
 
-                <v-divider class="mb-6 card-divider-style"></v-divider>
+</v-card-text>
+</v-window-item>
 
-                <h3 class="mb-4 v-card-title h3-style">Salas Públicas Disponibles</h3>
+<v-window-item value="public">
+ <v-card-text class="pa-5">
+<v-btn @click="crearSalaPublica" block size="large" class="mb-6 primary-action-btn" color="rgba(168, 160, 160, 1)" :loading="loading" rounded="lg" elevation="6" variant="tonal">
+Crear Sala Pública
+ </v-btn>
+<v-divider class="mb-6 card-divider-style"></v-divider>
+<v-list lines="two" bg-color="transparent" class="cutive-mono-list">
+ <v-list-item v-for="sala in salasPublicas" :key="sala.id" :title="`Sala ${sala.id}`" :subtitle="`Ejercicio: ${sala.exercise}`">
+<template v-slot:append>
+ <v-chip class="mr-4" color="rgba(255, 255, 255, 0.2)" label size="small" variant="flat">{{ sala.jugadores }} / {{ sala.maxJugadores }}</v-chip>
+<v-btn @click="unirseSalaPublica(sala.id)" :disabled="sala.jugadores >= sala.maxJugadores || loading" color="#ffffff" variant="text" class="secondary-action-btn">
+{{ sala.jugadores >= sala.maxJugadores ? "Llena" : "Unirse" }}
+</v-btn>
+</template>
+</v-list-item>
+</v-list>
+<v-alert v-if="!loading && salasPublicas.length === 0" type="info" variant="tonal" class="mt-4" color="#402c42">
+No hay salas públicas disponibles en este momento.
+ </v-alert>
+<v-divider class="my-6"></v-divider>
+<h3 class="mb-4">
+ Crear una Sala Pública</h3>
+<v-btn @click="crearSalaPublica" block color="rgba(168, 160, 160, 1)" size="large" class="mb-6" :loading="loading">
+ Crear Sala Pública
+</v-btn>
+ </v-card-text>
+</v-window-item>
+</v-window>
 
-                <v-list lines="two" bg-color="transparent" class="cutive-mono-list">
-                  <v-list-item
-                    v-for="sala in salasPublicas"
-                    :key="sala.id"
-                    :title="`Sala ${sala.id}`"
-                    :subtitle="`Ejercicio: ${sala.exercise}`"
-                  >
-                    <template v-slot:append>
-                      <v-chip class="mr-4" 
-                      color="rgba(255, 255, 255, 0.2)" 
-                      label 
-                      size="small" 
-                      variant="flat"
-                      >{{ sala.jugadores }} / {{ sala.maxJugadores }}</v-chip>
-                      
-                      <v-btn
-                        @click="unirseSalaPublica(sala.id)"
-                        :disabled="sala.jugadores >= sala.maxJugadores || loading"
-                        color="#ffffff"
-                        variant="text"
-                        class="secondary-action-btn"
-                      >
-                        {{ sala.jugadores >= sala.maxJugadores ? "Llena" : "Unirse" }}
-                      </v-btn>
-                    </template>
-                  </v-list-item>
-                </v-list>
+</v-card>
+ </v-col>
 
-                <v-alert
-                  v-if="!loading && salasPublicas.length === 0"
-                  type="info"
-                  variant="tonal"
-                  class="mt-4"
-                  color="#402c42"
-                >
-                  No hay salas públicas disponibles en este momento.
-                </v-alert>
+ <v-col cols="12" md="6" sm="12" class="pa-0 pa-md-2 mt-0">
+ <v-card class="elevation-12 leaderboard-panel rounded-lg" color="#000000c4">
+ <v-card-title class="text-center text-white v-card-title" style="background-color: #121212; border-radius: 8px 8px 0 0;">
+ Tabla de Clasificación Global
+</v-card-title>
 
-                <v-divider class="my-6"></v-divider>
-
-                <h3 class="mb-4">O Crear una Sala Pública</h3>
-                <v-btn @click="crearSalaPublica" block color="secondary" size="large" class="mb-6" :loading="loading">
-                  Crear Sala Pública
-                </v-btn>
-              </v-card-text>
-            </v-window-item>
-          </v-window>
-        </v-card>
-      </v-col>
-    </v-row>
-  </v-container>
-  <v-row justify="center" class="mt-n8">
-    <v-col cols="12" md="6" sm="8">
-      <v-card class="frosted-card elevation-6 leaderboard-panel rounded-lg" color="#1c1c1c">
-        <v-card-title class="text-center py-4 bg-primary text-white v-card-title" style="background-color: #121212; border-radius: 8px 8px 0 0;">
-          Tabla de Clasificación Global
-        </v-card-title>
-        <GlobalLeaderboard />
-      </v-card>
-    </v-col>
-  </v-row>
+ <GlobalLeaderboard />
+</v-card>
+</v-col>
+    
+</v-row>  
+ </v-container>
 </template>
 
 <script setup>
@@ -157,6 +136,7 @@ const wsStore = useWebSocketStore();
 
 const tab = ref("private");
 const loading = ref(false);
+
 
 const salaPrivada = ref({ id: "" });
 
@@ -244,6 +224,49 @@ onMounted(() => {
 </script>
 
 <style scoped>
+
+
+.minimal-nav {
+    /* El fons ha de ser fosc, gairebé transparent o negre sòlid */
+    background-color: rgba(0, 0, 0, 0.95) !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important; /* Línia de separació molt subtil */
+}
+
+.nav-title {
+    font-family: 'Inter', sans-serif;
+    letter-spacing: 1.5px; 
+    font-weight: 300 !important; 
+    color: #ffffff !important;
+}
+
+.nav-title .font-weight-bold {
+    color: rgba(241, 255, 248, 1); 
+}
+
+.nav-item {
+    font-family: 'Inter', sans-serif;
+    color: rgba(255, 255, 255, 0.7) !important; 
+    font-weight: 400;
+    letter-spacing: 1.2px;
+    margin: 0 12px;
+    padding: 0 5px;
+    transition: color 0.2s;
+    text-transform: uppercase;
+}
+
+.nav-item:hover {
+    color: #ffffff !important; 
+    border-bottom: 2px solid hsla(151, 100%, 95%, 1.00); 
+    padding-bottom: 6px;
+}
+
+.nav-profile-icon .v-icon {
+    color: rgba(255, 255, 255, 0.5) !important; 
+}
+
+.nav-profile-icon:hover .v-icon {
+    color: #ffffff !important; 
+}
 .pa-5 {
   padding: 2.5rem;
 }
@@ -256,10 +279,7 @@ onMounted(() => {
 .mb-6 {
   margin-bottom: 2rem;
 }
-.leaderboard-panel {
-  margin-top: 2rem;
-  width: 100%;
-}
+
 
 .primary-action-btn{
   font-family: 'Cutive Mono', monospace !important; 
@@ -268,59 +288,35 @@ onMounted(() => {
 }
 
 .frosted-card {
-  
-  box-shadow: 
-    0 4px 6px -1px rgba(0, 0, 0, 0.2), 
-    0 10px 15px -3px rgba(0, 0, 0, 0.4); 
-  border: 1px solid #402c42; 
-  border-radius: 8px; 
-  color: #fafcffff; 
-  padding: 24px 32px; 
-  position: relative;
-  overflow: hidden;
-    transition: transform 0.3s ease-out, box-shadow 0.3s ease-out; 
-}
-.frosted-card::after{ 
-  content: '';
-    position: absolute;
-    top: 0;
-    left: -150%; 
-    height: 100%;
-    width: 50%; /* Hem de definir l'amplada aquí per al "glint" */
+  .frosted-card {
+box-shadow: 
+0 4px 6px -1px rgba(0, 0, 0, 0.2), 
+0 10px 15px -3px rgba(0, 0, 0, 0.4); 
+border: 1px solid #402c42; 
+border-radius: 2px; 
+color: hsl(216, 100%, 99%); 
 
-    background: linear-gradient(
-        45deg, 
-        transparent 0%, 
-       rgba(255, 255, 255, 0.08) 40%, 
-        rgba(255, 255, 255, 0.08) 60%,
-        transparent 100%
-    );
-    transform: skewX(-45deg);
-    z-index: 10;
-   transition: none;
+/* ✨ CANVI: Augmentem el padding per fer-la més gran internament */
+ padding: 35px 45px; 
+
+position: sticky;
+overflow: hidden;
+transition: transform 0.3s ease-out, box-shadow 0.3s ease-out; 
 }
+}
+
 
 .frosted-card :deep(.v-field__input) {
   background-color: #2a2a2a !important; /* Cohesió amb v-input__control */
-  color: hsl(180, 20%, 1%); 
+  color: lab(82.54% -1.02 -0.37); 
   border-radius: 4px;
  
-}
-
-.frosted-card .v-input input {
-    color: hwb(0 0% 0%) !important; 
-    font-size: 1rem;
-    padding-top: 10px;
-}
-
-.frosted-card .v-input--text-field {
-    margin-bottom: 20px;
 }
 
 .primary-action-btn:hover {
     opacity: 0.9; 
     transform: translateY(-1px); 
-    border-bottom: 2px solid hsla(151, 100%, 95%, 1.00); /* Eliminem el border bottom que xoca amb el flat button */
+    border-bottom: 2px solid #f7fffb; /* Eliminem el border bottom que xoca amb el flat button */
   
 }
 
@@ -333,12 +329,15 @@ onMounted(() => {
 }
 
 .v-card-title {
-    color: hwb(0 100% 0%) !important; 
-    position: relative;
-    padding-bottom: 20px; 
-    font-family: 'Cutive Mono', monospace !important; 
-    font-weight: 200 ;
-    letter-spacing: 1px;
+color: rgb(187, 174, 174) !important; 
+ position: center; 
+ /* Valors ajustats per reduir l'alçada i igualar v-tabs */
+ padding-top: 8px !important; 
+ padding-bottom: 8px !important; 
+font-family: 'Cutive Mono', monospace !important; 
+font-weight: 200 ;
+letter-spacing: 1px;
+font-size: 1.4rem !important;
 }
 /* Estil específic per al h3 d'Unirse */
 .h3-style {
@@ -350,47 +349,59 @@ onMounted(() => {
     font-family: 'Cutive Mono', monospace !important; 
     font-weight: 400 ;
     letter-spacing: 1px;
-    color: hwb(0 0% 100%) !important;
+    color: lch(67.41% 5.41 19.81) !important;
 }
 
-.cutive-mono-tabs :deep(.v-tab) {
-    font-family: 'Cutive Mono', monospace !important;
-    font-weight: 400;
-    letter-spacing: 1px;
-    color: rgba(255, 255, 255, 0.6) !important;
-    transition: color 0.2s;
+.cutive-mono-tabs :deep(.v-tab:not(.v-tab--selected) .v-btn__content) {
+    color: #ffffff !important; 
+    opacity: 0.7 !important; /* Lleugera opacitat per distingir de l'activa */
 }
 
-.cutive-mono-tabs :deep(.v-tab--selected) {
-    color: hsl(0, 0%, 0%) !important;
+/* 2. Força el color blanc sobre la pestanya seleccionada (Activa) */
+.cutive-mono-tabs :deep(.v-tab--selected .v-btn__content) {
+    color: #ffffff !important; 
     font-weight: 700 !important;
 }
 
+/* Mantenim el fons de la pestanya seleccionada, però ajustem l'element v-btn__content */
+.cutive-mono-tabs :deep(.v-tab--selected) {
+    background-color: rgba(73, 255, 155, 0.05) !important;
+}
 /* Estil per a la línia divisòria (fosc i subtil) */
 .card-divider-style {
     border-color: rgba(255, 255, 255, 0.1) !important;
 }
 .cutive-mono-list {
-    color: hsl(0, 0%, 0%) !important;
+    color: hwb(0 100% 0%) !important;
 }
 
 .list-item-style {
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05); /* Separador subtil */
+    border-bottom: 1px solid #ffffff; /* Separador subtil */
     padding: 10px 0;
     transition: background-color 0.2s;
 }
 
 .list-item-style:hover {
-    background-color: rgba(255, 255, 255, 0.05) !important;
+    background-color: #ecdede !important;
 }
 
 .list-item-style :deep(.v-list-item-title) {
     font-family: 'Cutive Mono', monospace !important;
-    color: #ffffff !important;
+    color: hwb(0 88% 0%) !important;
     font-weight: 700;
 }
 .list-item-style :deep(.v-list-item-subtitle) {
     font-family: 'Cutive Mono', monospace !important;
-    color: rgba(255, 255, 255, 0.7) !important;
+    color: hsla(0, 100%, 92%, 0.702) !important;
+}
+
+.lobby {
+    background: linear-gradient(
+    135deg, 
+    #121212 0%,      
+    #21004C 70%,      
+    #4A148C 100%     
+  );
+  background-attachment: fixed !important;
 }
 </style>
