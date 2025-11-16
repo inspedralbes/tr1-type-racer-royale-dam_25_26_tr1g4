@@ -70,40 +70,40 @@
     </v-form>
 
     <v-divider class="mb-4 card-divider-style"></v-divider>
-    
-    
-
-    
-
 </v-card-text>
 </v-window-item>
 
 <v-window-item value="public">
- <v-card-text class="pa-5">
-<v-btn @click="crearSalaPublica" block size="large" class="mb-6 primary-action-btn" color="rgba(168, 160, 160, 1)" :loading="loading" rounded="lg" elevation="6" variant="tonal">
-Crear Sala Pública
- </v-btn>
-<v-divider class="mb-6 card-divider-style"></v-divider>
-<v-list lines="two" bg-color="transparent" class="cutive-mono-list">
- <v-list-item v-for="sala in salasPublicas" :key="sala.id" :title="`Sala ${sala.id}`" :subtitle="`Ejercicio: ${sala.exercise}`">
-<template v-slot:append>
- <v-chip class="mr-4" color="rgba(255, 255, 255, 0.2)" label size="small" variant="flat">{{ sala.jugadores }} / {{ sala.maxJugadores }}</v-chip>
-<v-btn @click="unirseSalaPublica(sala.id)" :disabled="sala.jugadores >= sala.maxJugadores || loading" color="#ffffff" variant="text" class="secondary-action-btn">
-{{ sala.jugadores >= sala.maxJugadores ? "Llena" : "Unirse" }}
-</v-btn>
-</template>
-</v-list-item>
-</v-list>
-<v-alert v-if="!loading && salasPublicas.length === 0" type="info" variant="tonal" class="mt-4" color="#402c42">
-No hay salas públicas disponibles en este momento.
- </v-alert>
-<v-divider class="my-6"></v-divider>
-<h3 class="mb-4">
- Crear una Sala Pública</h3>
-<v-btn @click="crearSalaPublica" block color="rgba(168, 160, 160, 1)" size="large" class="mb-6" :loading="loading">
- Crear Sala Pública
-</v-btn>
- </v-card-text>
+<v-card-text class="pa-5">
+<br></br>
+    <h3 class="mb-4" style="font-family: 'Cutive Mono', monospace; color: #ffffff;">Salas Públicas Disponibles</h3>
+
+    <v-list lines="two" bg-color="transparent" class="cutive-mono-list">
+  <v-list-item v-for="sala in salasPublicas" :key="sala.id" :title="`Sala ${sala.id}`" :subtitle="`Ejercicio: ${sala.exercise}`">
+    <template v-slot:append>
+    <v-chip class="mr-4" color="rgba(255, 255, 255, 0.2)" label size="small" variant="flat">{{ sala.jugadores }} / {{ sala.maxJugadores }}</v-chip>
+    <v-btn @click="unirseSalaPublica(sala.id)" :disabled="sala.jugadores >= sala.maxJugadores || loading" color="#ffffff" variant="text" class="secondary-action-btn">
+    {{ sala.jugadores >= sala.maxJugadores ? "Llena" : "Unirse" }}
+    </v-btn>
+    </template>
+    </v-list-item>
+    </v-list>
+    <v-alert v-if="!loading && salasPublicas.length === 0" type="info" variant="tonal" class="mt-4" color="#402c42">
+    No hay salas públicas disponibles en este momento.
+    </v-alert>
+
+    <v-divider class="my-6"></v-divider>
+
+     <h3 class="mb-4" style="font-family: 'Cutive Mono', monospace; color: #ffffff;">o crear sala Pública</h3>
+
+    <h3 class="mb-4">
+    o Crear una Sala Pública</h3>
+    <v-btn @click="crearSalaPublica" block size="large" class="mb-6 primary-action-btn" color="rgba(168, 160, 160, 1)" :loading="loading" rounded="lg" elevation="6" variant="tonal">
+    Crear Sala Pública
+    </v-btn>
+    <br></br>
+    
+</v-card-text>
 </v-window-item>
 </v-window>
 
