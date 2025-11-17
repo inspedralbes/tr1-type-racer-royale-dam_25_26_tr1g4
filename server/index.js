@@ -3,9 +3,7 @@ const express = require("express");
 const cors = require("cors");
 const { WebSocketServer } = require("ws");
 const db = require("./config/database");
-const createTables = require("./config/tables");
 const userRoutes = require("./routes/userRoutes");
-const { checkGlobalRecord } = require("./ws/gameSocket"); // Ruta al teu mòdul de BD
 const fs = require("fs").promises;
 const path = require("path");
 const { User } = require("./models/sequelize"); // --- CAMBIO --- Importamos el modelo User
@@ -91,6 +89,64 @@ function broadcastToRoom(roomId, message) {
   });
 }
 
+/**
+ * 1. 💾 Guarda un resultat a la Base de Dades (INSERT MySQL2).
+ */
+async function saveResultToDatabase(userId, username, reps) {
+  const sql = `
+        INSERT INTO resultats_globals 
+        (user_id, username, repeticions_totals) 
+        VALUES (?, ?, ?)
+    `;
+
+  try {
+    await db.execute(sql, [userId, username, reps]);
+    console.log(`[BD] Resultat de ${username} (${reps} reps) guardat.`);
+  } catch (err) {
+    console.error("❌ Error guardant el resultat a MySQL:", err);
+  }
+}
+
+/**
+ * 2. 🔍 Comprova si les repeticions actuals superen el rècord històric de l'usuari.
+ */
+async function checkGlobalRecord(ws, userId, username, currentReps) {
+  // Consulta: Obtenir la millor puntuació MAI aconseguida per aquest usuari
+  const sql_check = `
+        SELECT 
+            MAX(repeticions_totals) AS best_reps 
+        FROM 
+            resultats_globals 
+        WHERE 
+            user_id = ?;
+    `;
+
+  try {
+    const [rows] = await db.execute(sql_check, [userId]);
+    const best_historic_reps = rows[0]?.best_reps || 0;
+
+    if (currentReps > best_historic_reps) {
+      // 🚨 S'ha batut un rècord!
+      // Guardem el nou rècord immediatament
+      await saveResultToDatabase(userId, username, currentReps);
+
+      // Enviem un missatge d'èxit només a l'usuari que ha batut el rècord
+      ws.send(
+        JSON.stringify({
+          type: "new_global_record",
+          payload: {
+            reps: currentReps,
+            message: "🎉 ¡Nou rècord personal GLOBAL durant la partida!",
+          },
+        })
+      );
+
+      console.log(`[RÈCORD BATUT] ${username}: ${currentReps} reps.`);
+    }
+  } catch (err) {
+    console.error("Error comprovant rècord global:", err);
+  }
+}
 // 🚨 FUNCIÓ DE LEADERBOARD (Utilitza l'estructura rooms={})
 function broadcastLeaderboard(roomId) {
   const room = rooms[roomId];
@@ -184,6 +240,7 @@ function get_public_rooms() {
 }
 
 function initWebSocket(server) {
+  const createTables = require("./config/tables");
   wss = new WebSocketServer({ server }); // Assign to the broader scope wss
 
   console.log(
