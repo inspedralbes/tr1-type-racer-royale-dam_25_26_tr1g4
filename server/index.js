@@ -8,6 +8,7 @@ const userRoutes = require("./routes/userRoutes");
 const { checkGlobalRecord } = require("./ws/gameSocket"); // Ruta al teu mòdul de BD
 const fs = require("fs").promises;
 const path = require("path");
+const { User } = require("./models/sequelize"); // --- CAMBIO --- Importamos el modelo User
 
 const CHAT_LOG_DIR = path.join(__dirname, "chats");
 
@@ -189,9 +190,8 @@ function initWebSocket(server) {
     "Servidor de WebSockets activo y escuchando en el mismo puerto que Express."
   );
 
-  wss.on("connection", (ws, req) => {
-    // ⬇️ ESTA ES LA CORRECCIÓN ⬇️
-    // Volvemos al método robusto de la V1 para leer el 'username'
+  // --- CAMBIO --- Convertimos la conexión en 'async' para buscar al usuario
+  wss.on("connection", async (ws, req) => {
     const { searchParams } = new URL(req.url, `http://${req.headers.host}`);
     const username = searchParams.get("username");
 
@@ -200,10 +200,32 @@ function initWebSocket(server) {
       return;
     }
 
-    ws.username = username;
+    // --- CAMBIO --- Añadimos bloque para buscar User y guardar 'ws.userId'
+    try {
+      const user = await User.findOne({ where: { username } });
+      if (user) {
+        ws.userId = user.id; // ¡Clave! Guardamos el ID del usuario
+        ws.username = user.username;
+        console.log(`Cliente conectado: ${ws.username} (ID: ${ws.userId})`);
+      } else {
+        console.log(`Usuari ${username} no trobat a la BD. Tancant connexió.`);
+        ws.send(
+          JSON.stringify({
+            action: "error",
+            payload: { message: "Usuario no encontrado" },
+          })
+        );
+        ws.close(1008, "Usuario no encontrado");
+        return;
+      }
+    } catch (error) {
+      console.error("Error al buscar usuari:", error);
+      ws.close(1008, "Error de base de datos");
+      return;
+    }
+    // --- FIN DEL CAMBIO ---
 
-    console.log(`Cliente conectado: ${ws.username}`);
-
+    // --- CAMBIO --- Convertimos el 'message' handler en 'async' para esperar la BBDD
     ws.on("message", async (message) => {
       let data;
 
@@ -221,6 +243,28 @@ function initWebSocket(server) {
           const roomCode = generateRoomId();
           const roomId = roomCode;
           const ownerUsername = ws.username;
+
+          // --- CAMBIO --- Añadimos la inserción en la BBDD
+          try {
+            const sql = `
+              INSERT INTO routines (room_code, is_public, creator_id) 
+              VALUES (?, ?, ?)
+            `;
+            await db.execute(sql, [roomId, false, ws.userId]); // false = privada
+            console.log(
+              `[DB] Sala privada ${roomId} creada en 'routines' por user ${ws.userId}.`
+            );
+          } catch (err) {
+            console.error("Error creating room in DB:", err);
+            ws.send(
+              JSON.stringify({
+                action: "error",
+                payload: { message: "Error al crear la sala en la BD" },
+              })
+            );
+            break; // Salimos del case si falla la BBDD
+          }
+          // --- FIN DEL CAMBIO ---
 
           rooms[roomId] = {
             id: roomId,
@@ -264,6 +308,28 @@ function initWebSocket(server) {
           const roomCode = generateRoomId();
           const roomId = roomCode;
           const ownerUsername = ws.username;
+
+          // --- CAMBIO --- Añadimos la inserción en la BBDD
+          try {
+            const sql = `
+              INSERT INTO routines (room_code, is_public, creator_id) 
+              VALUES (?, ?, ?)
+            `;
+            await db.execute(sql, [roomId, true, ws.userId]); // true = pública
+            console.log(
+              `[DB] Sala pública ${roomId} creada en 'routines' por user ${ws.userId}.`
+            );
+          } catch (err) {
+            console.error("Error creating public room in DB:", err);
+            ws.send(
+              JSON.stringify({
+                action: "error",
+                payload: { message: "Error al crear la sala pública en la BD" },
+              })
+            );
+            break; // Salimos del case si falla la BBDD
+          }
+          // --- FIN DEL CAMBIO ---
 
           rooms[roomId] = {
             id: roomId,
@@ -477,17 +543,25 @@ function initWebSocket(server) {
           const { roomId, reps, userId } = payload;
           const room = rooms[roomId];
 
-          if (room && room.players && typeof reps === "number" && userId) {
+          // --- CAMBIO --- Aseguramos que el userId que usamos es el de la BBDD (ws.userId)
+          // en lugar del que viene del payload, que podría ser inseguro o incorrecto.
+          if (
+            room &&
+            room.players &&
+            typeof reps === "number" &&
+            ws.userId // Comprobamos el 'ws.userId' que obtuvimos al conectar
+          ) {
             const player = room.players.find((p) => p.ws === ws);
 
             if (player) {
               player.reps = reps;
-              checkGlobalRecord(ws, userId, player.username, reps);
+              // Pasamos el 'ws.userId' seguro a checkGlobalRecord
+              checkGlobalRecord(ws, ws.userId, player.username, reps);
               broadcastLeaderboard(roomId);
             }
           } else {
             console.warn(
-              `Dades invàlides per a update_reps. RoomId: ${roomId}, UserId: ${userId}`
+              `Dades invàlides per a update_reps. RoomId: ${roomId}, UserId: ${ws.userId}`
             );
           }
           break;

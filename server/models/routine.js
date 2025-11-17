@@ -2,11 +2,11 @@ const db = require("../config/database");
 
 class Routine {
   static async create(newRoutine) {
-    const { name, description, creator_id, duration_minutes, difficulty } =
+    const { name, description, exercise_id } =
       newRoutine;
     const [result] = await db.execute(
-      "INSERT INTO routines (name, description, creator_id, duration_minutes, difficulty) VALUES (?, ?, ?, ?, ?)",
-      [name, description, creator_id, duration_minutes, difficulty]
+      "INSERT INTO routines (name, description, exercise_id) VALUES (?, ?, ?)",
+      [name, description, exercise_id]
     );
     return result.insertId;
   }
@@ -23,10 +23,10 @@ class Routine {
     return rows;
   }
 
-  static async findByCreatorId(creatorId) {
+  static async findByExerciseId(exerciseId) {
     const [rows] = await db.execute(
-      "SELECT * FROM routines WHERE creator_id = ?",
-      [creatorId]
+      "SELECT * FROM routines WHERE exercise_id = ?",
+      [exerciseId]
     );
     return rows;
   }
