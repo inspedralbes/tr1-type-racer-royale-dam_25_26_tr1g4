@@ -68,6 +68,21 @@ router.beforeEach((to, from, next) => {
 // --- Lògica del Workaround (Mantinguda) ---
 
 // Workaround for https://github.com/vitejs/vite/issues/11804
+// Guardia de Navegación
+router.beforeEach((to, from, next) => {
+  const loggedIn = localStorage.getItem('fithub-token');
+
+  if (to.matched.some(record => record.meta.requiresAuth) && !loggedIn) {
+    // Si la ruta requiere autenticación y el usuario no está logueado,
+    // redirige a la página de login con un mensaje de error.
+    next({ path: '/', query: { error: 'auth' } });
+  } else {
+    // Si no, permite la navegación.
+    next();
+  }
+});
+
+
 router.onError((err, to) => {
   if (err?.message?.includes?.("Failed to fetch dynamically imported module")) {
     if (localStorage.getItem("vuetify:dynamic-reload")) {

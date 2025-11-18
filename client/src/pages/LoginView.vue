@@ -377,7 +377,7 @@ border-bottom: 2px solid hsla(151, 100%, 95%, 1.00);
 
 .minimal-nav {
     /* El fons ha de ser fosc, gairebé transparent o negre sòlid */
-    background-color: rgba(18, 18, 18, 0.95) !important; 
+    background-color: rgba(0, 0, 0, 0.95) !important; 
     border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important; /* Línia de separació molt subtil */
 }
 
