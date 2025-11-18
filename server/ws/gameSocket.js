@@ -159,9 +159,23 @@ function handleMessage(ws, data) {
                 processCompetitionEnd(ws.sessionId);
             }
             break;
+    case 'start_game':
+      startGame(payload.roomId, payload.exerciseId);
+      break;
     default:
       ws.send(JSON.stringify({ error: 'Acció desconeguda' }));
   }
+}
+
+function startGame(sessionId, exerciseId) {
+  const session = sessions[sessionId];
+  if (!session) return;
+
+  broadcastMessage(sessionId, {
+    action: 'game_starting',
+    payload: { exerciseId: exerciseId }
+  });
+  console.log(`Game starting in room ${sessionId} with exercise ${exerciseId}`);
 }
 
 async function createRoom(ws, isPublic) {

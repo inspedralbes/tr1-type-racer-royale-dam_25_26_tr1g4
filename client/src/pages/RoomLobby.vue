@@ -111,7 +111,7 @@
 
           <div class="mt-6">
             <v-select
-              v-model="selectedExerciseId"
+              v-model="wsStore.selectedExerciseId"
               :disabled="!amIOwner"
               :items="exerciseItems"
               item-title="label"
@@ -260,7 +260,6 @@ const allPlayersReady = computed(
   () => players.value.length > 0 && players.value.every((p) => p.ready)
 );
 
-const selectedExerciseId = ref(null);
 const exerciseItems = ref([]);
 
 // Helper para iniciales usuario
@@ -288,7 +287,7 @@ const logout = () => {
 const startGame = () => {
   wsStore.sendMessage({
     action: "start_game",
-    payload: { roomId: roomId.value, exerciseId: selectedExerciseId.value },
+    payload: { roomId: roomId.value, exerciseId: wsStore.selectedExerciseId },
   });
 };
 
@@ -304,7 +303,7 @@ watch(
   (isStarting) => {
     if (isStarting && wsStore.roomState?.roomId === roomId.value) {
       const selectedExercise = exerciseItems.value.find(
-        (e) => e.id === selectedExerciseId.value
+        (e) => e.id === wsStore.selectedExerciseId
       );
       const exerciseName = selectedExercise
         ? selectedExercise.label.toLowerCase()
@@ -329,7 +328,7 @@ onMounted(() => {
           tren: e.tren,
         }));
         if (exerciseItems.value.length > 0)
-          selectedExerciseId.value = exerciseItems.value[0].id;
+          wsStore.selectedExerciseId = exerciseItems.value[0].id;
       }
     })
     .catch((err) => console.error("Error carregant exercicis:", err));
