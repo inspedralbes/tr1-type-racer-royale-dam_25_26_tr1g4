@@ -97,6 +97,7 @@ function broadcastLeaderboard(roomId) {
   if (!room) return;
 
   const leaderboardArray = room.players.map((p) => ({
+    userId: p.ws.userId, // <-- AÑADIDO: El cliente necesita esto
     username: p.username,
     reps: p.reps || 0,
   }));
@@ -105,7 +106,7 @@ function broadcastLeaderboard(roomId) {
 
   const leaderboardMessage = {
     action: "leaderboard_update",
-    payload: leaderboardArray,
+    payload: { leaderboard: leaderboardArray }, // <-- ENVUELTO EN OBJETO
   };
   broadcastToRoom(roomId, leaderboardMessage);
 }

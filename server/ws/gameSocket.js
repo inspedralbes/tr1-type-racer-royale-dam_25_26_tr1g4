@@ -228,6 +228,8 @@ function broadcastLeaderboard(sessionId) {
 
   // 1. Create a clean array of participants with only the data needed by the client
   const leaderboardArray = Object.values(session.participants).map((p) => ({
+    // 💡 FIX: Add userId to the payload so the client can identify the player
+    userId: p.ws.userId, // The userId is stored in the ws object for each participant
     username: p.username,
     reps: p.reps,
   }));

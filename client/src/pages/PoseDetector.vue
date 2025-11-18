@@ -159,12 +159,13 @@ watch(
     if (!newMessage) return;
 
     switch (newMessage.action) {
-      // Caso CRÍTICO: Actualización en tiempo real
-      case "initial_leaderboard": // --- NUEVO --- Recibimos la lista inicial
+      case "initial_leaderboard":
       case "leaderboard_update":
-        // Aquí actualizamos la lista visual con los datos que vienen del servidor
-        // (que incluyen las reps que acabamos de enviar con sendRepetitionUpdate)
-        leaderboard.value = newMessage.payload.leaderboard;
+        // El servidor ahora siempre envía la lista completa y ordenada.
+        // Simplemente la reemplazamos.
+        if (newMessage.payload && newMessage.payload.leaderboard) {
+          leaderboard.value = newMessage.payload.leaderboard;
+        }
         break;
 
       case "all_players_ready":
@@ -266,7 +267,7 @@ watch(
           <ol class="leaderboard-list">
             <li
               v-for="(p, index) in leaderboard"
-              :key="p.username"
+              :key="p.userId"
               :class="{ 'highlight-self': p.username === props.username }"
             >
               <div class="player-info">
