@@ -1,4 +1,4 @@
-require('dotenv').config();
+require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 const { WebSocketServer } = require("ws");
@@ -6,6 +6,40 @@ const db = require("./config/database");
 const createTables = require("./config/tables");
 const userRoutes = require("./routes/userRoutes");
 const { checkGlobalRecord } = require("./ws/gameSocket"); // Ruta al teu mòdul de BD
+const fs = require("fs").promises;
+const path = require("path");
+const { User } = require("./models/sequelize"); // --- CAMBIO --- Importamos el modelo User
+
+const CHAT_LOG_DIR = path.join(__dirname, "chats");
+
+async function logChatMessage(roomId, messageData) {
+  try {
+    // Ensure the chat log directory exists
+    await fs.mkdir(CHAT_LOG_DIR, { recursive: true });
+
+    const logFile = path.join(CHAT_LOG_DIR, `${roomId}.json`);
+    let logs = [];
+
+    try {
+      // Try to read existing logs
+      const data = await fs.readFile(logFile, "utf8");
+      logs = JSON.parse(data);
+    } catch (error) {
+      // If file doesn't exist, it's fine, we'll create it.
+      if (error.code !== "ENOENT") {
+        throw error; // Rethrow other errors
+      }
+    }
+
+    // Add the new message
+    logs.push(messageData);
+
+    // Write the updated logs back to the file
+    await fs.writeFile(logFile, JSON.stringify(logs, null, 2), "utf8");
+  } catch (error) {
+    console.error(`Error logging chat message for room ${roomId}:`, error);
+  }
+}
 
 const app = express();
 
@@ -17,16 +51,18 @@ const corsOptions = {
 const nodeEnv = process.env.NODE_ENV;
 
 // En producción, solo permite peticiones desde la URL del frontend definida en .env
-if (nodeEnv === 'production') {
-  console.log('Running in production mode');
+if (nodeEnv === "production") {
+  console.log("Running in production mode");
   if (process.env.FRONTEND_URL) {
     corsOptions.origin = process.env.FRONTEND_URL;
   } else {
-    console.error("ERROR: FRONTEND_URL is not set in the production environment. CORS will be restricted.");
+    console.error(
+      "ERROR: FRONTEND_URL is not set in the production environment. CORS will be restricted."
+    );
     corsOptions.origin = false; // Disallow all origins if not set
   }
 } else {
-  console.log('Running in development mode');
+  console.log("Running in development mode");
   // En desarrollo, permite cualquier origen
   corsOptions.origin = "*";
 }
@@ -34,7 +70,8 @@ if (nodeEnv === 'production') {
 app.use(cors(corsOptions));
 app.use(express.json());
 app.use("/api/users", userRoutes);
-app.use('/api', require('./routes/api'));
+app.use("/api/stats", require("./routes/statsRoutes"));
+app.use("/api", require("./routes/api"));
 
 const connectedClients = new Map();
 const MAX_PLAYERS_PER_ROOM = 4;
@@ -81,22 +118,29 @@ async function processCompetitionEnd(roomId) {
 
   if (participantArray.length === 0) return;
 
+  console.log(
+    "Final participants array:",
+    JSON.stringify(
+      participantArray.map((p) => ({ username: p.username, reps: p.reps })),
+      null,
+      2
+    )
+  );
+
   participantArray.sort((a, b) => (b.reps || 0) - (a.reps || 0));
   const winner = participantArray[0];
 
-  const victoryMessage = {
-    action: "competition_ended",
+  const gameOverMessage = {
+    action: "game_over",
     payload: {
-      winnerUsername: winner.username,
-      winnerReps: winner.reps,
-      finalLeaderboard: participantArray.map((p) => ({
+      leaderboard: participantArray.map((p) => ({
         username: p.username,
         reps: p.reps || 0,
       })),
     },
   };
 
-  broadcastToRoom(roomId, victoryMessage);
+  broadcastToRoom(roomId, gameOverMessage);
   console.log(
     `🎉 COMPETICIÓ ACABADA a la sala ${roomId}. Guanyador: ${winner.username}`
   );
@@ -146,21 +190,42 @@ function initWebSocket(server) {
     "Servidor de WebSockets activo y escuchando en el mismo puerto que Express."
   );
 
-  wss.on("connection", (ws, req) => {
-    const urlParams = new URLSearchParams(req.url.slice(1));
-
-    const username = urlParams.get("username");
+  // --- CAMBIO --- Convertimos la conexión en 'async' para buscar al usuario
+  wss.on("connection", async (ws, req) => {
+    const { searchParams } = new URL(req.url, `http://${req.headers.host}`);
+    const username = searchParams.get("username");
 
     if (!username) {
       ws.close(1008, "Nombre de usuario no proporcionado");
-
       return;
     }
 
-    ws.username = username;
+    // --- CAMBIO --- Añadimos bloque para buscar User y guardar 'ws.userId'
+    try {
+      const user = await User.findOne({ where: { username } });
+      if (user) {
+        ws.userId = user.id; // ¡Clave! Guardamos el ID del usuario
+        ws.username = user.username;
+        console.log(`Cliente conectado: ${ws.username} (ID: ${ws.userId})`);
+      } else {
+        console.log(`Usuari ${username} no trobat a la BD. Tancant connexió.`);
+        ws.send(
+          JSON.stringify({
+            action: "error",
+            payload: { message: "Usuario no encontrado" },
+          })
+        );
+        ws.close(1008, "Usuario no encontrado");
+        return;
+      }
+    } catch (error) {
+      console.error("Error al buscar usuari:", error);
+      ws.close(1008, "Error de base de datos");
+      return;
+    }
+    // --- FIN DEL CAMBIO ---
 
-    console.log(`Cliente conectado: ${ws.username}`);
-
+    // --- CAMBIO --- Convertimos el 'message' handler en 'async' para esperar la BBDD
     ws.on("message", async (message) => {
       let data;
 
@@ -168,7 +233,6 @@ function initWebSocket(server) {
         data = JSON.parse(message);
       } catch (error) {
         console.error("Error al parsear mensaje:", message);
-
         return;
       }
 
@@ -177,23 +241,39 @@ function initWebSocket(server) {
       switch (action) {
         case "create_room": {
           const roomCode = generateRoomId();
-
           const roomId = roomCode;
-
           const ownerUsername = ws.username;
+
+          // --- CAMBIO --- Añadimos la inserción en la BBDD
+          try {
+            const sql = `
+              INSERT INTO routines (room_code, is_public, creator_id) 
+              VALUES (?, ?, ?)
+            `;
+            await db.execute(sql, [roomId, false, ws.userId]); // false = privada
+            console.log(
+              `[DB] Sala privada ${roomId} creada en 'routines' por user ${ws.userId}.`
+            );
+          } catch (err) {
+            console.error("Error creating room in DB:", err);
+            ws.send(
+              JSON.stringify({
+                action: "error",
+                payload: { message: "Error al crear la sala en la BD" },
+              })
+            );
+            break; // Salimos del case si falla la BBDD
+          }
+          // --- FIN DEL CAMBIO ---
 
           rooms[roomId] = {
             id: roomId,
-
             owner: ownerUsername,
-
             players: [{ ws, username: ownerUsername, reps: 0, ready: true }],
-
             isPublic: false,
-
             status: "waiting",
-
             maxPlayers: MAX_PLAYERS_PER_ROOM,
+            readyGamePlayers: new Set(),
           };
 
           ws.roomId = roomId;
@@ -201,58 +281,65 @@ function initWebSocket(server) {
           if (!connectedClients.has(roomId)) {
             connectedClients.set(roomId, new Set());
           }
-
           connectedClients.get(roomId).add(ws);
 
           const roomStatePayload = {
             roomId: roomId,
-
             owner: ownerUsername,
-
             players: rooms[roomId].players.map((p) => ({
               username: p.username,
               ready: p.ready,
             })),
-
             maxPlayers: MAX_PLAYERS_PER_ROOM,
           };
 
           ws.send(
             JSON.stringify({
               action: "room_created",
-
               payload: roomStatePayload,
             })
           );
-
           console.log(`Sala privada ${roomCode} creada por ${ownerUsername}`);
-
           break;
         }
 
         case "create_public_room": {
           const { exercise_text } = payload;
-
           const roomCode = generateRoomId();
-
           const roomId = roomCode;
-
           const ownerUsername = ws.username;
+
+          // --- CAMBIO --- Añadimos la inserción en la BBDD
+          try {
+            const sql = `
+              INSERT INTO routines (room_code, is_public, creator_id) 
+              VALUES (?, ?, ?)
+            `;
+            await db.execute(sql, [roomId, true, ws.userId]); // true = pública
+            console.log(
+              `[DB] Sala pública ${roomId} creada en 'routines' por user ${ws.userId}.`
+            );
+          } catch (err) {
+            console.error("Error creating public room in DB:", err);
+            ws.send(
+              JSON.stringify({
+                action: "error",
+                payload: { message: "Error al crear la sala pública en la BD" },
+              })
+            );
+            break; // Salimos del case si falla la BBDD
+          }
+          // --- FIN DEL CAMBIO ---
 
           rooms[roomId] = {
             id: roomId,
-
             owner: ownerUsername,
-
             players: [{ ws, username: ownerUsername, reps: 0, ready: true }],
-
             isPublic: true,
-
             exercise: exercise_text,
-
             status: "waiting",
-
             maxPlayers: MAX_PLAYERS_PER_ROOM,
+            readyGamePlayers: new Set(),
           };
 
           ws.roomId = roomId;
@@ -260,46 +347,36 @@ function initWebSocket(server) {
           if (!connectedClients.has(roomId)) {
             connectedClients.set(roomId, new Set());
           }
-
           connectedClients.get(roomId).add(ws);
 
           const roomStatePayload = {
             roomId: roomId,
-
             owner: ownerUsername,
-
             players: rooms[roomId].players.map((p) => ({
               username: p.username,
               ready: p.ready,
             })),
-
             maxPlayers: MAX_PLAYERS_PER_ROOM,
           };
 
           ws.send(
             JSON.stringify({
               action: "room_created",
-
               payload: roomStatePayload,
             })
           );
-
           console.log(`Sala pública ${roomCode} creada por ${ownerUsername}`);
-
           get_public_rooms();
-
           break;
         }
 
         case "get_public_rooms": {
           get_public_rooms();
-
           break;
         }
 
         case "join_room": {
           const { roomId: roomCode } = payload;
-
           const room = rooms[roomCode];
 
           if (!room) {
@@ -309,7 +386,6 @@ function initWebSocket(server) {
                 payload: { message: "La sala no existe." },
               })
             );
-
             return;
           }
 
@@ -320,7 +396,6 @@ function initWebSocket(server) {
                 payload: { message: "La sala está llena." },
               })
             );
-
             return;
           }
 
@@ -336,7 +411,6 @@ function initWebSocket(server) {
           if (!connectedClients.has(roomCode)) {
             connectedClients.set(roomCode, new Set());
           }
-
           connectedClients.get(roomCode).add(ws);
 
           const playersInfo = room.players.map((p) => ({
@@ -346,11 +420,8 @@ function initWebSocket(server) {
 
           const roomStatePayload = {
             roomId: roomCode,
-
             owner: room.owner,
-
             players: playersInfo,
-
             maxPlayers: MAX_PLAYERS_PER_ROOM,
           };
 
@@ -379,18 +450,14 @@ function initWebSocket(server) {
               action: "room_full",
               payload: { roomId: roomCode },
             });
-
             console.log(`Sala ${roomCode} llena. Notificando a los jugadores.`);
           }
-
           break;
         }
 
         case "player_ready": {
           const { roomId } = payload;
-
           const room = rooms[roomId];
-
           const player = room ? room.players.find((p) => p.ws === ws) : null;
 
           if (player) {
@@ -403,11 +470,8 @@ function initWebSocket(server) {
 
             const roomStatePayload = {
               roomId: roomId,
-
               owner: room.owner,
-
               players: playersInfo,
-
               maxPlayers: room.maxPlayers,
             };
 
@@ -416,13 +480,11 @@ function initWebSocket(server) {
               payload: roomStatePayload,
             });
           }
-
           break;
         }
 
         case "start_game": {
-          const { roomId } = payload;
-
+          const { roomId, exerciseId } = payload;
           const room = rooms[roomId];
 
           if (room && room.owner === ws.username) {
@@ -430,11 +492,12 @@ function initWebSocket(server) {
 
             if (allReady && room.players.length > 0) {
               room.status = "playing";
-
-              broadcastToRoom(roomId, { action: "game_starting" });
-
+              broadcastToRoom(roomId, {
+                action: "game_starting",
+                payload: { exerciseId },
+              });
               console.log(
-                `Game starting in room ${roomId} by owner ${ws.username}`
+                `Game starting in room ${roomId} by owner ${ws.username} with exercise ${exerciseId}`
               );
 
               if (room.isPublic) {
@@ -449,58 +512,163 @@ function initWebSocket(server) {
               );
             }
           }
+          break;
+        }
 
+        case "player_game_ready": {
+          const { roomId } = payload;
+          const room = rooms[roomId];
+          const player = room ? room.players.find((p) => p.ws === ws) : null;
+
+          if (player && room) {
+            room.readyGamePlayers.add(ws.username);
+
+            if (room.readyGamePlayers.size === room.players.length) {
+              // All players are ready, start the sequence
+              broadcastToRoom(roomId, { action: "all_players_ready" });
+
+              setTimeout(() => {
+                broadcastToRoom(roomId, { action: "start_game_countdown" });
+
+                setTimeout(() => {
+                  processCompetitionEnd(roomId); // This will send the 'game_over' message
+                }, 60000); // 60 seconds
+              }, 10000); // 10 seconds
+            }
+          }
           break;
         }
 
         case "update_reps": {
           const { roomId, reps, userId } = payload;
-
           const room = rooms[roomId];
 
-          if (room && room.players && typeof reps === "number" && userId) {
+          // --- CAMBIO --- Aseguramos que el userId que usamos es el de la BBDD (ws.userId)
+          // en lugar del que viene del payload, que podría ser inseguro o incorrecto.
+          if (
+            room &&
+            room.players &&
+            typeof reps === "number" &&
+            ws.userId // Comprobamos el 'ws.userId' que obtuvimos al conectar
+          ) {
             const player = room.players.find((p) => p.ws === ws);
 
             if (player) {
               player.reps = reps;
-
-              checkGlobalRecord(ws, userId, player.username, reps);
-
+              // Pasamos el 'ws.userId' seguro a checkGlobalRecord
+              checkGlobalRecord(ws, ws.userId, player.username, reps);
               broadcastLeaderboard(roomId);
             }
           } else {
             console.warn(
-              `Dades invàlides per a update_reps. RoomId: ${roomId}, UserId: ${userId}`
+              `Dades invàlides per a update_reps. RoomId: ${roomId}, UserId: ${ws.userId}`
             );
           }
-
           break;
         }
 
         case "end_competition": {
           const { roomId } = payload;
-
           processCompetitionEnd(roomId);
-
           break;
         }
 
         case "send_message": {
-          console.log('Received send_message action with payload:', payload);
-          const { roomId, text } = payload;
-          const room = rooms[roomId];
-          if (room) {
-            const message = {
-              action: "new_message",
-              payload: {
+          try {
+            console.log("Received send_message action with payload:", payload);
+            const { roomId, text } = payload;
+            const room = rooms[roomId];
+            if (room) {
+              const messagePayload = {
                 username: ws.username,
                 text: text,
-              },
-            };
-            console.log(`Broadcasting new_message to room ${roomId}:`, message);
-            broadcastToRoom(roomId, message);
-          } else {
-            console.log(`Room ${roomId} not found for send_message action.`);
+              };
+              const message = {
+                action: "new_message",
+                payload: messagePayload,
+              };
+              console.log(
+                `Broadcasting new_message to room ${roomId}:`,
+                message
+              );
+              broadcastToRoom(roomId, message);
+
+              // Log the message to a file
+              const logEntry = {
+                ...messagePayload,
+                timestamp: new Date().toISOString(),
+              };
+              await logChatMessage(roomId, logEntry);
+            } else {
+              console.log(`Room ${roomId} not found for send_message action.`);
+            }
+          } catch (e) {
+            console.error("!!! ERROR IN send_message CASE !!!", e);
+          }
+          break;
+        }
+
+        case "leave_room": {
+          const { roomId } = payload;
+          if (roomId && rooms[roomId]) {
+            const room = rooms[roomId];
+            const wasPublic = room.isPublic;
+            const playerIndex = room.players.findIndex((p) => p.ws === ws);
+
+            if (playerIndex !== -1) {
+              room.players.splice(playerIndex, 1);
+              ws.roomId = null; // Clear the roomId for this ws connection
+
+              if (room.players.length === 0) {
+                delete rooms[roomId];
+                console.log(`Sala ${roomId} eliminada por estar vacía.`);
+                if (wasPublic) {
+                  get_public_rooms();
+                }
+              } else {
+                if (room.owner === ws.username) {
+                  room.owner = room.players[0].username;
+                  console.log(
+                    `El propietario ha cambiado a ${room.owner} en la sala ${roomId}`
+                  );
+                }
+
+                const playersInfo = room.players.map((p) => ({
+                  username: p.username,
+                  ready: p.ready,
+                }));
+
+                const playerLeftPayload = {
+                  roomId: roomId,
+                  owner: room.owner,
+                  players: playersInfo,
+                  maxPlayers: MAX_PLAYERS_PER_ROOM,
+                };
+
+                broadcastToRoom(roomId, {
+                  action: "player_left",
+                  payload: playerLeftPayload,
+                });
+
+                console.log(
+                  `Jugador ${
+                    ws.username
+                  } ha salido de la sala ${roomId}. Jugadores: [${playersInfo
+                    .map((p) => p.username)
+                    .join(", ")}]`
+                );
+
+                if (wasPublic) {
+                  get_public_rooms();
+                }
+              }
+            }
+          }
+          if (roomId && connectedClients.has(roomId)) {
+            connectedClients.get(roomId).delete(ws);
+            if (connectedClients.get(roomId).size === 0) {
+              connectedClients.delete(roomId);
+            }
           }
           break;
         }
@@ -514,9 +682,7 @@ function initWebSocket(server) {
 
       if (roomId && rooms[roomId]) {
         const room = rooms[roomId];
-
         const wasPublic = room.isPublic;
-
         const playerIndex = room.players.findIndex((p) => p.ws === ws);
 
         if (playerIndex !== -1) {
@@ -524,18 +690,14 @@ function initWebSocket(server) {
 
           if (room.players.length === 0) {
             delete rooms[roomId];
-
             console.log(`Sala ${roomId} eliminada por estar vacía.`);
-
             if (wasPublic) {
               get_public_rooms();
             }
           } else {
             // If the owner leaves, assign a new owner
-
             if (room.owner === ws.username) {
               room.owner = room.players[0].username;
-
               console.log(
                 `El propietario ha cambiado a ${room.owner} en la sala ${roomId}`
               );
@@ -548,11 +710,8 @@ function initWebSocket(server) {
 
             const playerLeftPayload = {
               roomId: roomId,
-
               owner: room.owner,
-
               players: playersInfo,
-
               maxPlayers: MAX_PLAYERS_PER_ROOM,
             };
 
@@ -578,7 +737,6 @@ function initWebSocket(server) {
 
       if (roomId && connectedClients.has(roomId)) {
         connectedClients.get(roomId).delete(ws);
-
         if (connectedClients.get(roomId).size === 0) {
           connectedClients.delete(roomId);
         }

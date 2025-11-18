@@ -40,6 +40,7 @@ jobs:
             echo "NODE_ENV=${{ secrets.NODE_ENV }}" > .env
             echo "FRONTEND_URL=${{ secrets.FRONTEND_URL }}" >> .env
             echo "MYSQL_ROOT_PASSWORD=${{ secrets.MYSQL_ROOT_PASSWORD }}" >> .env
+            # The backend also needs the root password to connect initially
             echo "MYSQL_PASSWORD=${{ secrets.MYSQL_PASSWORD }}" >> .env
             echo "MYSQL_DATABASE=${{ secrets.MYSQL_DATABASE }}" >> .env
             echo "MYSQL_USER=${{ secrets.MYSQL_USER }}" >> .env
@@ -49,6 +50,10 @@ jobs:
             echo "VITE_API_URL=/api" >> .env
             echo "VITE_SOCKET_URL=/" >> .env
             echo "JWT_SECRET=${{ secrets.JWT_SECRET }}" >> .env
+
+            # Stop existing services and remove the database volume to ensure a clean start
+            echo "Stopping services and removing old database volume..."
+            docker compose -f docker-compose.prod.yml down -v --remove-orphans
 
             # Run docker-compose for production
             echo "Starting docker-compose..."

@@ -9,14 +9,17 @@ export const useWebSocketStore = defineStore('websocket', {
     publicRooms: [],
     error: null,
     gameStarting: false,
-    username: null,
+    username: localStorage.getItem('username') || null,
     chatMessages: [], // New state for chat messages
+    selectedExerciseId: null,
+    lastMessage: null,
   }),
   actions: {
     connect(url) {
       // Extract username from URL for storing it
       const urlParams = new URLSearchParams(url.split('?')[1]);
       this.username = urlParams.get('username');
+      localStorage.setItem('username', this.username);
 
       if (this.socket && this.isConnected) {
         return;
@@ -50,6 +53,7 @@ export const useWebSocketStore = defineStore('websocket', {
       this.socket.onmessage = (event) => {
         const data = JSON.parse(event.data);
         console.log('Server message:', data);
+        this.lastMessage = data;
         this.handleMessage(data);
       };
     },
@@ -77,7 +81,7 @@ export const useWebSocketStore = defineStore('websocket', {
           this.publicRooms = data.payload;
           break;
         case 'game_starting':
-          this.handleGameStarting();
+          this.handleGameStarting(data.payload);
           break;
         case 'room_full':
           console.log(`Room ${data.payload.roomId} is full.`);
@@ -92,14 +96,19 @@ export const useWebSocketStore = defineStore('websocket', {
       }
     },
 
-    handleGameStarting() {
+    handleGameStarting(payload) {
       this.gameStarting = true;
+      if (payload && payload.exerciseId) {
+        this.selectedExerciseId = payload.exerciseId;
+      }
     },
 
     disconnect() {
       if (this.socket) {
         this.socket.close();
       }
+      localStorage.removeItem('username');
+      this.username = null;
     },
 
     sendMessage(message) {
@@ -112,9 +121,21 @@ export const useWebSocketStore = defineStore('websocket', {
       }
     },
     
+    leaveRoom() {
+      if (this.roomState) {
+        this.sendMessage({
+          action: 'leave_room',
+          payload: { roomId: this.roomState.roomId },
+        });
+        this.resetRoomState();
+      }
+    },
+
     resetRoomState() {
         this.roomState = null;
         this.gameStarting = false;
+        this.chatMessages = [];
+        this.selectedExerciseId = null;
     }
   },
 });

@@ -1,0 +1,32 @@
+[
+  {
+    "username": "b",
+    "text": "hola",
+    "timestamp": "2025-11-12T08:35:20.286Z"
+  },
+  {
+    "username": "a",
+    "text": "adeu",
+    "timestamp": "2025-11-12T08:35:25.302Z"
+  },
+  {
+    "username": "a",
+    "text": "que tal?",
+    "timestamp": "2025-11-12T08:35:27.449Z"
+  },
+  {
+    "username": "b",
+    "text": "bien y tu?",
+    "timestamp": "2025-11-12T08:35:32.170Z"
+  },
+  {
+    "username": "a",
+    "text": "podria estar mejor pero bueno",
+    "timestamp": "2025-11-12T08:36:06.122Z"
+  },
+  {
+    "username": "b",
+    "text": "ya yo tmb",
+    "timestamp": "2025-11-12T08:36:11.053Z"
+  }
+]

@@ -1,7 +1,6 @@
 version: "3.8"
 
 services:
-
   client:
     build:
       context: ./client
@@ -23,12 +22,8 @@ services:
     restart: on-failure
     ports:
       - "3000:3000"
-    volumes:
-      - ./server:/usr/src/app
-      - /usr/src/app/node_modules
     environment:
       - DB_HOST=db_mysql
-      - MYSQL_USER=root
       - MYSQL_ROOT_PASSWORD=1234
       - MYSQL_DATABASE=projBD
     env_file:
@@ -52,7 +47,8 @@ services:
     ports:
       - "3306:3306"
     healthcheck:
-      test: [ "CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p1234" ]
+      test:
+        ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p1234"]
       interval: 10s
       timeout: 5s
       retries: 5
