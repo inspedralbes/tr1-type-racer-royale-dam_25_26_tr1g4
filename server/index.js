@@ -1,4 +1,4 @@
-require("dotenv").config();
+require('dotenv').config();
 const express = require("express");
 const cors = require("cors");
 const { WebSocketServer } = require("ws");
@@ -6,40 +6,6 @@ const db = require("./config/database");
 const createTables = require("./config/tables");
 const userRoutes = require("./routes/userRoutes");
 const { checkGlobalRecord } = require("./ws/gameSocket"); // Ruta al teu mòdul de BD
-const fs = require("fs").promises;
-const path = require("path");
-const { User } = require("./models/sequelize"); // --- CAMBIO --- Importamos el modelo User
-
-const CHAT_LOG_DIR = path.join(__dirname, "chats");
-
-async function logChatMessage(roomId, messageData) {
-  try {
-    // Ensure the chat log directory exists
-    await fs.mkdir(CHAT_LOG_DIR, { recursive: true });
-
-    const logFile = path.join(CHAT_LOG_DIR, `${roomId}.json`);
-    let logs = [];
-
-    try {
-      // Try to read existing logs
-      const data = await fs.readFile(logFile, "utf8");
-      logs = JSON.parse(data);
-    } catch (error) {
-      // If file doesn't exist, it's fine, we'll create it.
-      if (error.code !== "ENOENT") {
-        throw error; // Rethrow other errors
-      }
-    }
-
-    // Add the new message
-    logs.push(messageData);
-
-    // Write the updated logs back to the file
-    await fs.writeFile(logFile, JSON.stringify(logs, null, 2), "utf8");
-  } catch (error) {
-    console.error(`Error logging chat message for room ${roomId}:`, error);
-  }
-}
 
 const app = express();
 
@@ -51,18 +17,16 @@ const corsOptions = {
 const nodeEnv = process.env.NODE_ENV;
 
 // En producción, solo permite peticiones desde la URL del frontend definida en .env
-if (nodeEnv === "production") {
-  console.log("Running in production mode");
+if (nodeEnv === 'production') {
+  console.log('Running in production mode');
   if (process.env.FRONTEND_URL) {
     corsOptions.origin = process.env.FRONTEND_URL;
   } else {
-    console.error(
-      "ERROR: FRONTEND_URL is not set in the production environment. CORS will be restricted."
-    );
+    console.error("ERROR: FRONTEND_URL is not set in the production environment. CORS will be restricted.");
     corsOptions.origin = false; // Disallow all origins if not set
   }
 } else {
-  console.log("Running in development mode");
+  console.log('Running in development mode');
   // En desarrollo, permite cualquier origen
   corsOptions.origin = "*";
 }
@@ -70,7 +34,7 @@ if (nodeEnv === "production") {
 app.use(cors(corsOptions));
 app.use(express.json());
 app.use("/api/users", userRoutes);
-app.use("/api", require("./routes/api"));
+app.use('/api', require('./routes/api'));
 
 const connectedClients = new Map();
 const MAX_PLAYERS_PER_ROOM = 4;
@@ -182,10 +146,10 @@ function initWebSocket(server) {
     "Servidor de WebSockets activo y escuchando en el mismo puerto que Express."
   );
 
-  // --- CAMBIO --- Convertimos la conexión en 'async' para buscar al usuario
-  wss.on("connection", async (ws, req) => {
-    const { searchParams } = new URL(req.url, `http://${req.headers.host}`);
-    const username = searchParams.get("username");
+  wss.on("connection", (ws, req) => {
+    const urlParams = new URLSearchParams(req.url.slice(1));
+
+    const username = urlParams.get("username");
 
     if (!username) {
       ws.close(1008, "Nombre de usuario no proporcionado");
@@ -193,32 +157,10 @@ function initWebSocket(server) {
       return;
     }
 
-    // --- CAMBIO --- Añadimos bloque para buscar User y guardar 'ws.userId'
-    try {
-      const user = await User.findOne({ where: { username } });
-      if (user) {
-        ws.userId = user.id; // ¡Clave! Guardamos el ID del usuario
-        ws.username = user.username;
-        console.log(`Cliente conectado: ${ws.username} (ID: ${ws.userId})`);
-      } else {
-        console.log(`Usuari ${username} no trobat a la BD. Tancant connexió.`);
-        ws.send(
-          JSON.stringify({
-            action: "error",
-            payload: { message: "Usuario no encontrado" },
-          })
-        );
-        ws.close(1008, "Usuario no encontrado");
-        return;
-      }
-    } catch (error) {
-      console.error("Error al buscar usuari:", error);
-      ws.close(1008, "Error de base de datos");
-      return;
-    }
-    // --- FIN DEL CAMBIO ---
+    ws.username = username;
 
-    // --- CAMBIO --- Convertimos el 'message' handler en 'async' para esperar la BBDD
+    console.log(`Cliente conectado: ${ws.username}`);
+
     ws.on("message", async (message) => {
       let data;
 
@@ -239,28 +181,6 @@ function initWebSocket(server) {
           const roomId = roomCode;
 
           const ownerUsername = ws.username;
-
-          // --- CAMBIO --- Añadimos la inserción en la BBDD
-          try {
-            const sql = `
-              INSERT INTO routines (room_code, is_public, creator_id) 
-              VALUES (?, ?, ?)
-            `;
-            await db.execute(sql, [roomId, false, ws.userId]); // false = privada
-            console.log(
-              `[DB] Sala privada ${roomId} creada en 'routines' por user ${ws.userId}.`
-            );
-          } catch (err) {
-            console.error("Error creating room in DB:", err);
-            ws.send(
-              JSON.stringify({
-                action: "error",
-                payload: { message: "Error al crear la sala en la BD" },
-              })
-            );
-            break; // Salimos del case si falla la BBDD
-          }
-          // --- FIN DEL CAMBIO ---
 
           rooms[roomId] = {
             id: roomId,
@@ -318,28 +238,6 @@ function initWebSocket(server) {
           const roomId = roomCode;
 
           const ownerUsername = ws.username;
-
-          // --- CAMBIO --- Añadimos la inserción en la BBDD
-          try {
-            const sql = `
-              INSERT INTO routines (room_code, is_public, creator_id) 
-              VALUES (?, ?, ?)
-            `;
-            await db.execute(sql, [roomId, true, ws.userId]); // true = pública
-            console.log(
-              `[DB] Sala pública ${roomId} creada en 'routines' por user ${ws.userId}.`
-            );
-          } catch (err) {
-            console.error("Error creating public room in DB:", err);
-            ws.send(
-              JSON.stringify({
-                action: "error",
-                payload: { message: "Error al crear la sala pública en la BD" },
-              })
-            );
-            break; // Salimos del case si falla la BBDD
-          }
-          // --- FIN DEL CAMBIO ---
 
           rooms[roomId] = {
             id: roomId,
@@ -560,25 +458,19 @@ function initWebSocket(server) {
 
           const room = rooms[roomId];
 
-          // --- CAMBIO --- Aseguramos que el userId que usamos es el de la BBDD (ws.userId)
-          // en lugar del que viene del payload, que podría ser inseguro o incorrecto.
-          if (
-            room &&
-            room.players &&
-            typeof reps === "number" &&
-            ws.userId // Comprobamos el 'ws.userId' que obtuvimos al conectar
-          ) {
+          if (room && room.players && typeof reps === "number" && userId) {
             const player = room.players.find((p) => p.ws === ws);
 
             if (player) {
               player.reps = reps;
-              // Pasamos el 'ws.userId' seguro a checkGlobalRecord
-              checkGlobalRecord(ws, ws.userId, player.username, reps);
+
+              checkGlobalRecord(ws, userId, player.username, reps);
+
               broadcastLeaderboard(roomId);
             }
           } else {
             console.warn(
-              `Dades invàlides per a update_reps. RoomId: ${roomId}, UserId: ${ws.userId}`
+              `Dades invàlides per a update_reps. RoomId: ${roomId}, UserId: ${userId}`
             );
           }
 
@@ -594,7 +486,7 @@ function initWebSocket(server) {
         }
 
         case "send_message": {
-          console.log("Received send_message action with payload:", payload);
+          console.log('Received send_message action with payload:', payload);
           const { roomId, text } = payload;
           const room = rooms[roomId];
           if (room) {
