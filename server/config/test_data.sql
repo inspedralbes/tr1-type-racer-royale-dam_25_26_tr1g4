@@ -15,17 +15,10 @@ INSERT INTO exercises (name, description, difficulty, tren) VALUES
 ('Jumping Jacks', 'Exercici de cardio', 'easy', 'inferior');
 
 -- Inserir rutines de prova
-INSERT INTO routines (id, room_code, is_public, exercise_text, status, num_participants, duration) VALUES
-(1, 'SALA001', true, 'Rutina de cardio', 'waiting', 4, 45),
-(2, 'SALA002', false, 'Rutina de força', 'in-progress', 2, 30),
-(3, 'SALA003', true, 'Rutina mixta', 'finished', 6, 60);
-
--- Relacionar rutines amb exercicis
-INSERT INTO routine_exercises (routine_id, exercise_id, set_duration_seconds, rest_duration_seconds) VALUES
-(1, 1, 30, 15),
-(1, 2, 45, 20),
-(2, 3, 60, 30),
-(3, 4, 40, 20);
+INSERT INTO routines (id, room_code, is_public, status, num_participants, duration) VALUES
+(1, 'SALA001', true, 'waiting', 4, 45),
+(2, 'SALA002', false, 'in-progress', 2, 30),
+(3, 'SALA003', true, 'finished', 6, 60);
 
 -- Inserir performances de prova
 INSERT INTO performances (user_id, routine_id, exercise_id, reps, score, won) VALUES
