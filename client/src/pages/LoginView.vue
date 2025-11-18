@@ -112,14 +112,6 @@ function handleSubmit() {
         PLANS
       </v-btn>
 
-      <v-btn 
-        fab 
-        small 
-        class="nav-profile-btn"
-      >
-        <v-icon>mdi-account</v-icon>
-      </v-btn>
-
     </v-app-bar>
 
     </div>
