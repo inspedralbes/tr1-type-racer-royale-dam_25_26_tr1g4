@@ -1,38 +1,5 @@
 <template>
-  <div>
-    <v-app-bar class="minimal-nav" dark flat height="58">
-      <v-toolbar-title class="text-h5 nav-title font-weight-light" @click="router.push({ name: 'lobby' })"
-        style="cursor: pointer;">
-        <v-icon left color="white">mdi-run-fast</v-icon>
-        Fit<span class="font-weight-bold ml-1">AI</span>
-      </v-toolbar-title>
-
-      <v-spacer></v-spacer>
-
-       <!-- LÒGICA DEL MENÚ DE PERFIL INTEGRAT -->
-      <div class="profile-menu-integrated">
-        <v-menu offset-y>
-          <template v-slot:activator="{ props }">
-            <v-btn v-bind="props" class="profile-btn-fix" rounded="circle" flat aria-label="Menú de Perfil">
-              <v-avatar color="#4A148C" class="profile-avatar-fix">
-                <span class="white--text text-h5">{{ userInitial }}</span>
-              </v-avatar>
-            </v-btn>
-
-          </template>
-          <v-list>
-            <v-list-item :to="{ name: 'profile' }">
-              <v-list-item-title>Mi Perfil</v-list-item-title>
-            </v-list-item>
-            <v-list-item @click="logout">
-              <v-list-item-title>Cerrar Sesión</v-list-item-title>
-            </v-list-item>
-          </v-list>
-        </v-menu>
-      </div>
-    </v-app-bar>
-
-  </div>
+  <ProfileMenu />
 
   <v-container
     fluid
@@ -204,6 +171,18 @@
               {{ isReady ? "No estoy listo" : "¡Estoy Listo!" }}
             </v-btn>
           </v-card-actions>
+
+          <v-btn
+            block
+            variant="text"
+            color="grey"
+            @click="exitRoom"
+            class="mt-4"
+            size="small"
+          >
+            <v-icon left>mdi-arrow-left</v-icon>
+            Salir al Lobby
+          </v-btn>
         </v-card>
 
         <v-btn
@@ -230,6 +209,7 @@
 </template>
 
 <script setup>
+import ProfileMenu from "@/components/ProfileMenu.vue";
 import { ref, computed, onMounted, watch, onBeforeUnmount } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useWebSocketStore } from "@/stores/websocket";
@@ -261,11 +241,6 @@ const allPlayersReady = computed(
 
 const exerciseItems = ref([]);
 
-// Helper para iniciales usuario
-const userInitial = computed(() =>
-  wsStore.username ? wsStore.username.charAt(0).toUpperCase() : "U"
-);
-
 const sendReady = () => {
   wsStore.sendMessage({
     action: "player_ready",
@@ -276,11 +251,6 @@ const sendReady = () => {
 const exitRoom = () => {
   wsStore.leaveRoom();
   router.push("/lobby");
-};
-
-const logout = () => {
-  // Tu lógica de logout
-  router.push("/login");
 };
 
 const startGame = () => {

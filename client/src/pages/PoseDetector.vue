@@ -5,11 +5,13 @@ import Countdown from "@/components/Countdown.vue";
 import { useWebSocketStore } from "@/stores/websocket";
 import { PoseDetectionService } from "@/services/PoseDetectionService";
 import { exerciseAnalyzers } from "@/logic/exerciseAnalyzers";
+import { useRouter } from "vue-router";
 
 // WebSocket Store
 const wsStore = useWebSocketStore();
 
 // Component Props
+const router = useRouter();
 const props = defineProps({
   sessionId: String,
   userId: String,
@@ -197,6 +199,14 @@ watch(
     }
   }
 );
+
+const goBackToLobby = () => {
+  wsStore.sendMessage({
+    action: "leave_room",
+    payload: { roomId: props.sessionId },
+  });
+  router.push("/lobby");
+};
 </script>
 
 <template>
@@ -234,7 +244,7 @@ watch(
 
         <v-btn
           color="primary"
-          @click="$router.push('/lobby')"
+          @click="goBackToLobby"
           class="mt-4 primary-action-btn"
           rounded="lg"
           variant="tonal"

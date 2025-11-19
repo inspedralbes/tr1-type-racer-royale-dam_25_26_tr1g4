@@ -1,45 +1,5 @@
 <template class="lobby">
-  <div>
-    <v-app-bar class="minimal-nav" dark flat height="58">
-      <v-toolbar-title
-        class="text-h5 nav-title font-weight-light"
-        @click="router.push({ name: 'lobby' })"
-        style="cursor: pointer"
-      >
-        <v-icon left color="white">mdi-run-fast</v-icon>
-        Fit<span class="font-weight-bold ml-1">AI</span>
-      </v-toolbar-title>
-
-      <v-spacer></v-spacer>
-
-      <!-- LÒGICA DEL MENÚ DE PERFIL INTEGRAT -->
-      <div class="profile-menu-integrated">
-        <v-menu offset-y>
-          <template v-slot:activator="{ props }">
-            <v-btn
-              v-bind="props"
-              class="profile-btn-fix"
-              rounded="circle"
-              flat
-              aria-label="Menú de Perfil"
-            >
-              <v-avatar color="#4A148C" class="profile-avatar-fix">
-                <span class="white--text text-h5">{{ userInitial }}</span>
-              </v-avatar>
-            </v-btn>
-          </template>
-          <v-list>
-            <v-list-item :to="{ name: 'profile' }">
-              <v-list-item-title>Mi Perfil</v-list-item-title>
-            </v-list-item>
-            <v-list-item @click="logout">
-              <v-list-item-title>Cerrar Sesión</v-list-item-title>
-            </v-list-item>
-          </v-list>
-        </v-menu>
-      </div>
-    </v-app-bar>
-  </div>
+  <ProfileMenu />
   <v-container class="pt-10 pb-0" fluid>
     <v-row justify="center">
       <v-col cols="12" sm="8" md="5" lg="4">
@@ -147,6 +107,7 @@
 </template>
 
 <script setup>
+import ProfileMenu from "@/components/ProfileMenu.vue";
 import { ref, onMounted } from "vue";
 import api from "@/api";
 

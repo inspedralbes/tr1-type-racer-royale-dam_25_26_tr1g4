@@ -2,6 +2,7 @@
 import { ref, onMounted } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import api from "@/api";
+import ProfileMenu from "@/components/ProfileMenu.vue";
 
 const router = useRouter();
 const route = useRoute();
@@ -18,8 +19,8 @@ const errorMessage = ref("");
 const showPassword = ref(false);
 
 onMounted(() => {
-  if (route.query.error === 'auth') {
-    errorMessage.value = 'Has de fer login per accedir a aquesta pàgina.';
+  if (route.query.error === "auth") {
+    errorMessage.value = "Has de fer login per accedir a aquesta pàgina.";
   }
 });
 
@@ -88,63 +89,104 @@ function handleSubmit() {
 </script>
 
 <template>
-
-  <div>
-    <v-app-bar class="minimal-nav" dark flat height="58">
-
-      <v-toolbar-title class="text-h5 nav-title font-weight-light" @click="router.push({ name: 'login' })"
-        style="cursor: pointer;">
-        <v-icon left color="#ffffff">mdi-run-fast</v-icon>
-        Fit<span class="font-weight-bold ml-1">AI</span>
-      </v-toolbar-title>
-
-      <v-spacer></v-spacer>
-
-    </v-app-bar>
-  </div>
-
+  <ProfileMenu />
   <v-container class="fill-height" fluid>
     <v-row align="center" justify="center">
       <v-col cols="12" sm="8" md="5" lg="4">
-
-        <v-card class="pa-6 pa-md-8 mx-auto frosted-card" hover elevation="10" rounded="lg" color="#000000c4"
-          max-width="450">
-
-          <v-card-title class="text-h4 text-center font-weight-bold mb-4 text-medium-emphasis ">
+        <v-card
+          class="pa-6 pa-md-8 mx-auto frosted-card"
+          hover
+          elevation="10"
+          rounded="lg"
+          color="#000000c4"
+          max-width="450"
+        >
+          <v-card-title
+            class="text-h4 text-center font-weight-bold mb-4 text-medium-emphasis"
+          >
             FitAI - {{ isRegistering ? "NOU REGISTRE" : "ACCÉS" }}
           </v-card-title>
 
           <v-card-text class="pa-8">
-
-            <v-alert v-if="errorMessage" type="error" class="mb-5" variant="tonal">
+            <v-alert
+              v-if="errorMessage"
+              type="error"
+              class="mb-5"
+              variant="tonal"
+            >
               {{ errorMessage }}
             </v-alert>
 
             <v-form @submit.prevent="handleSubmit">
+              <v-text-field
+                v-if="isRegistering"
+                v-model="username"
+                label="Nom d'Usuari"
+                prepend-inner-icon="mdi-account-plus"
+                type="text"
+                required
+                :disabled="loading"
+                variant="outlined"
+                density="comfortable"
+                class="mb-3"
+                dark
+                filled
+              ></v-text-field>
 
-              <v-text-field v-if="isRegistering" v-model="username" label="Nom d'Usuari"
-                prepend-inner-icon="mdi-account-plus" type="text" required :disabled="loading" variant="outlined"
-                density="comfortable" class="mb-3" dark filled></v-text-field>
+              <v-text-field
+                v-model="email"
+                label="Correu Electrònic"
+                prepend-inner-icon="mdi-email"
+                type="email"
+                required
+                :disabled="loading"
+                variant="outlined"
+                density="comfortable"
+                dark
+                filled
+              ></v-text-field>
 
-              <v-text-field v-model="email" label="Correu Electrònic" prepend-inner-icon="mdi-email" type="email"
-                required :disabled="loading" variant="outlined" density="comfortable" dark filled></v-text-field>
+              <v-text-field
+                v-model="password"
+                label="Contrasenya"
+                prepend-inner-icon="mdi-lock"
+                :type="showPassword ? 'text' : 'password'"
+                :append-inner-icon="showPassword ? 'mdi-eye-off' : 'mdi-eye'"
+                @click:append-inner="showPassword = !showPassword"
+                required
+                :disabled="loading"
+                variant="outlined"
+                density="comfortable"
+                class="mb-6"
+                dark
+                filled
+              ></v-text-field>
 
-              <v-text-field v-model="password" label="Contrasenya" prepend-inner-icon="mdi-lock"
-                :type="showPassword ? 'text' : 'password'" :append-inner-icon="showPassword ? 'mdi-eye-off' : 'mdi-eye'"
-                @click:append-inner="showPassword = !showPassword" required :disabled="loading" variant="outlined"
-                density="comfortable" class="mb-6" dark filled></v-text-field>
-
-              <v-btn block class="primary-action-btn" color="rgba(168, 160, 160, 1)" size="large" type="submit"
-                :loading="loading" :disabled="loading" variant="tonal" rounded="lg" elevation="6">
+              <v-btn
+                block
+                class="primary-action-btn"
+                color="rgba(168, 160, 160, 1)"
+                size="large"
+                type="submit"
+                :loading="loading"
+                :disabled="loading"
+                variant="tonal"
+                rounded="lg"
+                elevation="6"
+              >
                 {{ isRegistering ? "REGISTRAR-SE" : "ACCEDIR" }}
               </v-btn>
-
             </v-form>
           </v-card-text>
 
           <v-card-actions class="justify-center mt-3">
-            <v-btn variant="text" color="secondary" size="small" :disabled="loading"
-              @click="isRegistering = !isRegistering">
+            <v-btn
+              variant="text"
+              color="secondary"
+              size="small"
+              :disabled="loading"
+              @click="isRegistering = !isRegistering"
+            >
               {{
                 isRegistering
                   ? "Ja tens compte? Fes Login"
@@ -152,13 +194,11 @@ function handleSubmit() {
               }}
             </v-btn>
           </v-card-actions>
-
         </v-card>
       </v-col>
     </v-row>
   </v-container>
 </template>
-
 
 <style scoped>
 /* Nou estil per a la classe activa */
@@ -172,16 +212,13 @@ function handleSubmit() {
 }
 
 .primary-action-btn {
-  font-family: 'Cutive Mono', monospace !important;
+  font-family: "Cutive Mono", monospace !important;
   font-weight: 400;
   letter-spacing: 1px;
-
 }
 
 .frosted-card {
-
-  box-shadow:
-    0 4px 6px -1px rgba(0, 0, 0, 0.2),
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2),
     0 10px 15px -3px rgba(0, 0, 0, 0.4);
 
   border: 1px solid #402c42;
@@ -191,21 +228,22 @@ function handleSubmit() {
   position: relative;
   overflow: hidden;
   transition: transform 0.3s ease-out, box-shadow 0.3s ease-out;
-
 }
 
 .frosted-card::after {
-  content: '';
+  content: "";
   position: absolute;
   top: 0;
   left: -150%;
   height: 100%;
 
-  background: linear-gradient(45deg,
-      transparent 0%,
-      rgba(255, 255, 255, 0.08) 40%,
-      rgba(255, 255, 255, 0.08) 60%,
-      transparent 100%);
+  background: linear-gradient(
+    45deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.08) 40%,
+    rgba(255, 255, 255, 0.08) 60%,
+    transparent 100%
+  );
   transform: skewX(-45deg);
   z-index: 10;
   transition: none;
@@ -213,21 +251,18 @@ function handleSubmit() {
 
 .frosted-card:hover::after {
   transform: translateX(350%) skewX(-45deg);
-  ;
   transition: transform 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }
 
 .frosted-card:hover {
-
-  transform: scale(1.020) translateZ(0);
+  transform: scale(1.02) translateZ(0);
   box-shadow: 0 15px 40px rgba(0, 0, 0, 0.7);
 }
 
 .frosted-card :deep(.v-field__input) {
-  background-color: #2D3748;
-  color: #F1F5F9;
+  background-color: #2d3748;
+  color: #f1f5f9;
   border-radius: 4px;
-
 }
 
 .frosted-card .v-input input {
@@ -246,26 +281,24 @@ function handleSubmit() {
   margin-bottom: 20px;
 }
 
-
 .primary-action-btn:hover {
   opacity: 0.9;
   transform: translateY(-1px);
-  border-bottom: 2px solid hsla(151, 100%, 95%, 1.00);
-
+  border-bottom: 2px solid hsla(151, 100%, 95%, 1);
 }
-
 
 .secondary-action-btn:hover {
   color: #ffffff !important;
 }
 
 .login-button-gradient {
-
   background: #5c2643;
-  background: linear-gradient(90deg,
-      #5e0735 0%,
-      #991349 50%,
-      #b4325e 100%) !important;
+  background: linear-gradient(
+    90deg,
+    #5e0735 0%,
+    #991349 50%,
+    #b4325e 100%
+  ) !important;
 
   box-shadow: 0 4px 10px rgba(236, 64, 122, 0.4),
     0 0 15px rgba(236, 64, 122, 0.4) !important;
@@ -282,16 +315,15 @@ function handleSubmit() {
   color: hsla(276, 70%, 91%, 0.897) !important;
   position: relative;
   padding-bottom: 20px;
-  font-family: 'Cutive Mono', monospace !important;
+  font-family: "Cutive Mono", monospace !important;
   font-weight: 200;
   letter-spacing: 1px;
 }
 
 .v-text-field {
-  font-family: 'Cutive Mono', monospace !important;
+  font-family: "Cutive Mono", monospace !important;
   font-weight: 400;
   letter-spacing: 1px;
-
 }
 
 .v-toolbar-title {
@@ -299,11 +331,12 @@ function handleSubmit() {
 }
 
 .gradient-bar {
-
-  background: linear-gradient(90deg,
-      #5e0735 0%,
-      rgba(100, 27, 56, 1) 50%,
-      #b4325e 100%) !important;
+  background: linear-gradient(
+    90deg,
+    #5e0735 0%,
+    rgba(100, 27, 56, 1) 50%,
+    #b4325e 100%
+  ) !important;
 }
 
 .minimal-nav {
@@ -314,7 +347,7 @@ function handleSubmit() {
 }
 
 .nav-title {
-  font-family: 'Inter', sans-serif;
+  font-family: "Inter", sans-serif;
   letter-spacing: 1.5px;
   font-weight: 300 !important;
   color: #ffffff !important;
@@ -325,7 +358,7 @@ function handleSubmit() {
 }
 
 .nav-item {
-  font-family: 'Inter', sans-serif;
+  font-family: "Inter", sans-serif;
   color: rgba(255, 255, 255, 0.7) !important;
   font-weight: 400;
   letter-spacing: 1.2px;
@@ -337,7 +370,7 @@ function handleSubmit() {
 
 .nav-item:hover {
   color: #ffffff !important;
-  border-bottom: 2px solid hsla(151, 100%, 95%, 1.00);
+  border-bottom: 2px solid hsla(151, 100%, 95%, 1);
   padding-bottom: 6px;
 }
 
