@@ -213,6 +213,7 @@ import ProfileMenu from "@/components/ProfileMenu.vue";
 import { ref, computed, onMounted, watch, onBeforeUnmount } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useWebSocketStore } from "@/stores/websocket";
+import api from "@/api"; // Importamos el helper de la API
 import Chat from "@/components/Chat.vue";
 
 const route = useRoute();
@@ -285,22 +286,22 @@ watch(
   }
 );
 
-onMounted(() => {
+onMounted(async () => {
   wsStore.gameStarting = false;
-  fetch("http://localhost:3000/api/workouts")
-    .then((res) => res.json())
-    .then((data) => {
-      if (data && data.exercises) {
-        exerciseItems.value = data.exercises.map((e) => ({
-          label: e.name,
-          id: e.id,
-          tren: e.tren,
-        }));
-        if (exerciseItems.value.length > 0)
-          wsStore.selectedExerciseId = exerciseItems.value[0].id;
-      }
-    })
-    .catch((err) => console.error("Error carregant exercicis:", err));
+  try {
+    const data = await api.get("/workouts"); // Usamos el helper
+    if (data && data.exercises) {
+      exerciseItems.value = data.exercises.map((e) => ({
+        label: e.name,
+        id: e.id,
+        tren: e.tren,
+      }));
+      if (exerciseItems.value.length > 0)
+        wsStore.selectedExerciseId = exerciseItems.value[0].id;
+    }
+  } catch (err) {
+    console.error("Error carregant exercicis:", err);
+  }
 });
 
 onBeforeUnmount(() => wsStore.resetRoomState());
