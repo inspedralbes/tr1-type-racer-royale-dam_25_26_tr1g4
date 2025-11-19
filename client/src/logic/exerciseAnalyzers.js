@@ -62,9 +62,9 @@ export function analizarSentadilla(keypoints, state, onRep, onFeedback) {
   if (state.value === "down" && anguloEspalda < UMBRAL_ESPALDA) {
     onFeedback("Esquena recta!");
   } else if (state.value === "down") {
-    onFeedback("¡Sube!");
+    onFeedback("Puja!");
   } else if (state.value === "up" && anguloRodilla > UMBRAL_ARRIBA) {
-    onFeedback("Baja...");
+    onFeedback("Baixa...");
   }
 
   if (anguloRodilla < UMBRAL_ABAJO && state.value === "up") {
@@ -74,7 +74,7 @@ export function analizarSentadilla(keypoints, state, onRep, onFeedback) {
   if (anguloRodilla > UMBRAL_ARRIBA && state.value === "down") {
     state.value = "up";
     onRep();
-    onFeedback("¡Bien!");
+    onFeedback("Bé!");
   }
 }
 
@@ -141,7 +141,7 @@ function analizarAbdominales(keypoints, state, onRep, onFeedback) {
   if (state.value === "down") {
     onFeedback("Puja el tronc!");
   } else if (state.value === "up") {
-    onFeedback("¡Baja controladament!");
+    onFeedback("Baixa!");
   }
 
   // Transición a 'up' (subiendo)
@@ -218,7 +218,7 @@ function analizarJumpingJacks(keypoints, state, onRep, onFeedback) {
     !leftAnkle ||
     !rightAnkle
   ) {
-    onFeedback("No te veo bien, ponte de frente");
+    onFeedback("No et veig bé, posa't de costat");
     return;
   }
 

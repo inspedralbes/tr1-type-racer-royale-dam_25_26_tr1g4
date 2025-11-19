@@ -195,7 +195,6 @@
         >
           <v-icon>{{ chatOpen ? "mdi-close" : "mdi-chat" }}</v-icon>
         </v-btn>
-
         <div class="chat-panel" :class="{ 'chat-panel-open': chatOpen }">
           <Chat
             :messages="chatMessages"

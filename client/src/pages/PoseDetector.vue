@@ -323,8 +323,6 @@ const goBackToLobby = () => {
     </v-btn>
 
     <!-- Chat Panel -->
-
-    <!-- Chat Panel -->
     <div class="chat-panel" :class="{ 'chat-panel-open': chatOpen }">
       <Chat
         :messages="chatMessages"
