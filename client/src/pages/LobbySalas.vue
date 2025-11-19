@@ -91,9 +91,6 @@
     <v-divider class="my-6"></v-divider>
 
      <h3 class="mb-4" style="font-family: 'Cutive Mono', monospace; color: #ffffff;">o crear sala Pública</h3>
-
-    <h3 class="mb-4">
-    o Crear una Sala Pública</h3>
     <v-btn @click="crearSalaPublica" block size="large" class="mb-6 primary-action-btn" color="rgba(168, 160, 160, 1)" :loading="loading" rounded="lg" elevation="6" variant="tonal">
     Crear Sala Pública
     </v-btn>
