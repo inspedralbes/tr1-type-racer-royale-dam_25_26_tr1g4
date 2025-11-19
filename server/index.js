@@ -97,6 +97,7 @@ function broadcastLeaderboard(roomId) {
   if (!room) return;
 
   const leaderboardArray = room.players.map((p) => ({
+    userId: p.ws.userId, // <-- AÑADIDO: El cliente necesita esto
     username: p.username,
     reps: p.reps || 0,
   }));
@@ -105,7 +106,7 @@ function broadcastLeaderboard(roomId) {
 
   const leaderboardMessage = {
     action: "leaderboard_update",
-    payload: leaderboardArray,
+    payload: { leaderboard: leaderboardArray }, // <-- ENVUELTO EN OBJETO
   };
   broadcastToRoom(roomId, leaderboardMessage);
 }
@@ -539,24 +540,37 @@ function initWebSocket(server) {
           break;
         }
 
+        case "request_initial_leaderboard": {
+          const { roomId } = payload;
+          const room = rooms[roomId];
+          if (room) {
+            const leaderboardArray = room.players.map((p) => ({
+              username: p.username,
+              reps: p.reps || 0,
+            }));
+            ws.send(
+              JSON.stringify({
+                action: "initial_leaderboard",
+                payload: { leaderboard: leaderboardArray },
+              })
+            );
+          }
+          break;
+        }
+
         case "update_reps": {
-          const { roomId, reps, userId } = payload;
+          const { roomId, reps } = payload;
           const room = rooms[roomId];
 
-          // --- CAMBIO --- Aseguramos que el userId que usamos es el de la BBDD (ws.userId)
-          // en lugar del que viene del payload, que podría ser inseguro o incorrecto.
-          if (
-            room &&
-            room.players &&
-            typeof reps === "number" &&
-            ws.userId // Comprobamos el 'ws.userId' que obtuvimos al conectar
-          ) {
+          // Usamos el 'ws.userId' que obtuvimos al conectar, que es seguro.
+          if (room && typeof reps === "number" && ws.userId) {
             const player = room.players.find((p) => p.ws === ws);
 
             if (player) {
               player.reps = reps;
-              // Pasamos el 'ws.userId' seguro a checkGlobalRecord
+              // Comprobamos si hay un nuevo récord personal
               checkGlobalRecord(ws, ws.userId, player.username, reps);
+              // Enviamos la clasificación actualizada y ordenada a todos en la sala
               broadcastLeaderboard(roomId);
             }
           } else {

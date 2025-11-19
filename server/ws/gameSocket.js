@@ -1,8 +1,7 @@
-
-const { WebSocketServer } = require('ws');
-const url = require('url');
-const { User } = require('../models/sequelize');
-const db = require('../config/database');
+const { WebSocketServer } = require("ws");
+const url = require("url");
+const { User } = require("../models/sequelize");
+const db = require("../config/database");
 
 const sessions = {};
 
@@ -10,26 +9,26 @@ const sessions = {};
  * 1. 💾 Guarda un resultat a la Base de Dades (INSERT MySQL2).
  */
 async function saveResultToDatabase(userId, username, reps) {
-    const sql = `
+  const sql = `
         INSERT INTO resultats_globals 
-        (user_id, username, repeticions_totals) 
-        VALUES (?, ?, ?)
+        (user_id, repeticions_totals) 
+        VALUES (?, ?)
     `;
-    
-    try {
-        await db.execute(sql, [userId, username, reps]);
-        console.log(`[BD] Resultat de ${username} (${reps} reps) guardat.`);
-    } catch (err) {
-        console.error('❌ Error guardant el resultat a MySQL:', err);
-    }
+
+  try {
+    await db.execute(sql, [userId, reps]);
+    console.log(`[BD] Resultat de ${username} (${reps} reps) guardat.`);
+  } catch (err) {
+    console.error("❌ Error guardant el resultat a MySQL:", err);
+  }
 }
 
 /**
  * 2. 🔍 Comprova si les repeticions actuals superen el rècord històric de l'usuari.
  */
 async function checkGlobalRecord(ws, userId, username, currentReps) {
-    // Consulta: Obtenir la millor puntuació MAI aconseguida per aquest usuari
-    const sql_check = `
+  // Consulta: Obtenir la millor puntuació MAI aconseguida per aquest usuari
+  const sql_check = `
         SELECT 
             MAX(repeticions_totals) AS best_reps 
         FROM 
@@ -37,53 +36,45 @@ async function checkGlobalRecord(ws, userId, username, currentReps) {
         WHERE 
             user_id = ?;
     `;
-    
-    try {
-        const [rows] = await db.execute(sql_check, [userId]);
-        const best_historic_reps = rows[0]?.best_reps || 0;
 
-        if (currentReps > best_historic_reps) {
-            
-            // 🚨 S'ha batut un rècord! 
-            // Guardem el nou rècord immediatament
-            await saveResultToDatabase(userId, username, currentReps);
-            
-            // Enviem un missatge d'èxit només a l'usuari que ha batut el rècord
-            ws.send(JSON.stringify({
-                type: 'new_global_record',
-                payload: {
-                    reps: currentReps,
-                    message: "🎉 ¡Nou rècord personal GLOBAL durant la partida!"
-                }
-            }));
-            
-            console.log(`[RÈCORD BATUT] ${username}: ${currentReps} reps.`);
-        }
-    } catch (err) {
-        console.error('Error comprovant rècord global:', err);
+  try {
+    const [rows] = await db.execute(sql_check, [userId]);
+    const best_historic_reps = rows[0]?.best_reps || 0;
+
+    if (currentReps > best_historic_reps) {
+      // 🚨 S'ha batut un rècord!
+      // Guardem el nou rècord immediatament
+      await saveResultToDatabase(userId, username, currentReps);
+
+      // Enviem un missatge d'èxit només a l'usuari que ha batut el rècord
+      ws.send(
+        JSON.stringify({
+          type: "new_global_record",
+          payload: {
+            reps: currentReps,
+            message: "🎉 ¡Nou rècord personal GLOBAL durant la partida!",
+          },
+        })
+      );
+
+      console.log(`[RÈCORD BATUT] ${username}: ${currentReps} reps.`);
     }
+  } catch (err) {
+    console.error("Error comprovant rècord global:", err);
+  }
 }
-
-module.exports = { 
-    checkGlobalRecord,
-    saveResultToDatabase // Opcional, però útil si es vol guardar el resultat final
-};
-
-
-// 🚨 FI DE LES NOVES FUNCIONS D'INTEGRACIÓ DE BD
-
 
 function initGameSocket(server) {
   const wss = new WebSocketServer({ server });
-  console.log(' WebSocket server actiu');
+  console.log(" WebSocket server actiu");
 
-  wss.on('connection', async (ws, req) => {
-    console.log(' Nou client connectat');
+  wss.on("connection", async (ws, req) => {
+    console.log(" Nou client connectat");
     const { query } = url.parse(req.url, true);
     const username = query.username;
 
     if (!username) {
-      console.log('Connexió sense nom d\'usuari. Tancant.');
+      console.log("Connexió sense nom d'usuari. Tancant.");
       ws.close();
       return;
     }
@@ -100,68 +91,86 @@ function initGameSocket(server) {
         return;
       }
     } catch (error) {
-      console.error('Error al buscar usuari:', error);
+      console.error("Error al buscar usuari:", error);
       ws.close();
       return;
     }
 
-    ws.on('message', (msg) => {
+    ws.on("message", (msg) => {
       try {
         const data = JSON.parse(msg);
         handleMessage(ws, data);
       } catch (err) {
-        console.error('Missatge invàlid:', err);
+        console.error("Missatge invàlid:", err);
       }
     });
 
-    ws.on('close', () => {
-      console.log('client desconnectat');
+    ws.on("close", () => {
+      console.log("client desconnectat");
       removeFromSessions(ws);
     });
   });
 }
 
-
 function handleMessage(ws, data) {
   const { action, payload } = data;
 
   switch (action) {
-    case 'create_room':
+    case "create_room":
       createRoom(ws, false);
       break;
-    case 'create_public_room':
+    case "create_public_room":
       createRoom(ws, true);
       break;
-    case 'join_room':
+    case "join_room":
       joinRoom(ws, payload);
       break;
-    case 'leave_room':
+    case "leave_room":
       leaveRoom(ws, payload);
       break;
-    case 'send_message':
+    case "send_message":
       broadcastMessage(payload.sessionId, {
         from: payload.username,
         message: payload.message,
       });
       break;
 
-       case 'update_reps':
-         if (ws.sessionId && ws.userId && payload && typeof payload.reps === 'number') {
+    case "update_reps":
+      if (
+        ws.sessionId &&
+        ws.userId &&
+        payload &&
+        typeof payload.reps === "number"
+      ) {
         updateReps(ws.sessionId, ws.userId, payload.reps);
       } else {
-        console.error('Dades invàlides per a update_reps:', payload);
+        console.error("Dades invàlides per a update_reps:", payload);
       }
       break;
 
-      // 🚨 NOU CASE: Fi de la competició
-        case 'end_competition':
-            if (ws.sessionId) {
-                processCompetitionEnd(ws.sessionId);
-            }
-            break;
+    // 🚨 NOU CASE: Fi de la competició
+    case "end_competition":
+      if (ws.sessionId) {
+        processCompetitionEnd(ws.sessionId);
+      }
+      break;
+    case "start_game":
+      startGame(payload.roomId, payload.exerciseId);
+      break;
     default:
-      ws.send(JSON.stringify({ error: 'Acció desconeguda' }));
+      ws.send(JSON.stringify({ error: "Acció desconeguda" }));
   }
+}
+
+function startGame(sessionId, exerciseId) {
+  const session = sessions[sessionId];
+  if (!session) return;
+
+  broadcastMessage(sessionId, {
+    action: "game_starting",
+    payload: { exerciseId: exerciseId },
+  });
+  console.log(`Game starting in room ${sessionId} with exercise ${exerciseId}`);
 }
 
 async function createRoom(ws, isPublic) {
@@ -173,13 +182,12 @@ async function createRoom(ws, isPublic) {
     `;
     await db.execute(sql, [roomId, isPublic]);
     console.log(`[DB] Room ${roomId} created in routines table.`);
-    
+
     // Automatically join the user to the created room
     joinRoom(ws, { roomId: roomId });
-
   } catch (err) {
-    console.error('Error creating room in DB:', err);
-    ws.send(JSON.stringify({ error: 'Error creating room' }));
+    console.error("Error creating room in DB:", err);
+    ws.send(JSON.stringify({ error: "Error creating room" }));
   }
 }
 /**
@@ -191,24 +199,24 @@ async function createRoom(ws, isPublic) {
 
 function updateReps(sessionId, userId, newRepCount) {
   const session = sessions[sessionId];
-   if (!session || !session.participants[userId]) {
+  if (!session || !session.participants[userId]) {
     console.warn(`Sessió ${sessionId} o usuari ${userId} no trobat.`);
     return;
   }
   // 1. Actualitzar l'estat local (in-memory)
   session.participants[userId].reps = newRepCount;
-  
-    // 🚨 NOVA LÒGICA: Comprovar i guardar el rècord global
-    // Cal passar el socket (ws) per enviar el missatge individual
-    const ws = session.participants[userId].ws; // Obtenim la referència al socket guardada a joinRoom
-    const username = session.participants[userId].username;
 
-    // 🚨 CRIDA CLAU
-    checkGlobalRecord(ws, userId, username, newRepCount);
-    console.log(`${username} té ara ${newRepCount} repeticions.`);
+  // 🚨 NOVA LÒGICA: Comprovar i guardar el rècord global
+  // Cal passar el socket (ws) per enviar el missatge individual
+  const ws = session.participants[userId].ws; // Obtenim la referència al socket guardada a joinRoom
+  const username = session.participants[userId].username;
+
+  // 🚨 CRIDA CLAU
+  checkGlobalRecord(ws, userId, username, newRepCount);
+  console.log(`${username} té ara ${newRepCount} repeticions.`);
   // 2. Enviar l'actualització de la classificació a tots els clients de la sala
   broadcastLeaderboard(sessionId);
-    }
+}
 /**
  * Genera el leaderboard, l'ordena i l'envia a tots els clients de la sessió.
  * @param {string} sessionId - ID de la sala.
@@ -219,9 +227,11 @@ function broadcastLeaderboard(sessionId) {
   if (!session) return;
 
   // 1. Create a clean array of participants with only the data needed by the client
-  const leaderboardArray = Object.values(session.participants).map(p => ({
+  const leaderboardArray = Object.values(session.participants).map((p) => ({
+    // 💡 FIX: Add userId to the payload so the client can identify the player
+    userId: p.ws.userId, // The userId is stored in the ws object for each participant
     username: p.username,
-    reps: p.reps
+    reps: p.reps,
   }));
 
   // 2. Sort by reps descending
@@ -229,13 +239,15 @@ function broadcastLeaderboard(sessionId) {
 
   // 3. Create the standardized message
   const leaderboardMessage = {
-    type: 'leaderboard_update',
-    data: leaderboardArray, // Now a clean, sorted array
+    action: "leaderboard_update",
+    payload: {
+      leaderboard: leaderboardArray, // Now a clean, sorted array
+    },
   };
 
   // 4. Use the existing function to send to all clients in the room
   broadcastMessage(sessionId, leaderboardMessage);
- 
+
   console.log(`Leaderboard de la sessió ${sessionId} actualitzat i enviat.`);
 }
 
@@ -245,105 +257,119 @@ function broadcastLeaderboard(sessionId) {
  * @param {string} sessionId - ID de la sala.
  */
 async function processCompetitionEnd(sessionId) {
-    const session = sessions[sessionId];
-    if (!session) return;
+  const session = sessions[sessionId];
+  if (!session) return;
 
-    const participantArray = Object.values(session.participants);
-    
-    if (participantArray.length === 0) return;
+  const participantArray = Object.values(session.participants);
 
-    // Determinar el guanyador
-    participantArray.sort((a, b) => b.reps - a.reps);
-    const winner = participantArray[0];
-    
-    // 🚨 JA HEM GUARDAT ELS RÈCORDS INDIVIDUALS A updateReps, però enviem la victòria final
+  if (participantArray.length === 0) return;
 
-    const victoryMessage = {
-        type: 'competition_ended', // Acció que el client ha d'escoltar
-        payload: {
-            winnerUsername: winner.username,
-            winnerReps: winner.reps,
-            finalLeaderboard: participantArray.map(p => ({
-                username: p.username,
-                reps: p.reps,
-            })),
-        },
-    };
+  // Determinar el guanyador
+  participantArray.sort((a, b) => b.reps - a.reps);
+  const winner = participantArray[0];
 
-    broadcastMessage(sessionId, victoryMessage);
-    console.log(`🎉 COMPETICIÓ ACABADA a la sala ${sessionId}. Guanyador: ${winner.username}`);
+  // 🚨 JA HEM GUARDAT ELS RÈCORDS INDIVIDUALS A updateReps, però enviem la victòria final
+
+  const victoryMessage = {
+    action: "game_over", // Acció que el client ha d'escoltar
+    payload: {
+      leaderboard: participantArray.map((p) => ({
+        username: p.username,
+        reps: p.reps,
+      })),
+    },
+  };
+
+  broadcastMessage(sessionId, victoryMessage);
+  console.log(
+    `🎉 COMPETICIÓ ACABADA a la sala ${sessionId}. Guanyador: ${winner.username}`
+  );
 }
-
 
 function joinRoom(ws, { roomId }) {
   const sessionId = roomId;
 
   if (!sessions[sessionId]) {
     sessions[sessionId] = {
-      clients: [], 
-      participants: {} 
+      clients: [],
+      participants: {},
     };
   }
 
   // TODO: Check if room is full before joining
 
   sessions[sessionId].clients.push(ws);
-  
+
   sessions[sessionId].participants[ws.userId] = {
     username: ws.username,
-    reps: 0, 
-    ws: ws 
+    reps: 0,
+    ws: ws,
   };
 
   ws.sessionId = sessionId;
 
   console.log(`${ws.username} s’ha unit a la sala ${sessionId}`);
-  
-  broadcastMessage(sessionId, { action: 'new_message', payload: { username: 'System', text: `${ws.username} has joined the room.` } });
-  
-  broadcastLeaderboard(sessionId); 
 
-  ws.send(JSON.stringify({
-    action: 'join_success',
+  broadcastMessage(sessionId, {
+    action: "new_message",
     payload: {
-      roomId: sessionId,
-      players: Object.values(sessions[sessionId].participants).map(p => ({username: p.username, reps: p.reps})),
-    }
-  }));
+      username: "System",
+      text: `${ws.username} has joined the room.`,
+    },
+  });
+
+  broadcastLeaderboard(sessionId);
+
+  ws.send(
+    JSON.stringify({
+      action: "join_success",
+      payload: {
+        roomId: sessionId,
+        leaderboard: Object.values(sessions[sessionId].participants).map(
+          (p) => ({ username: p.username, reps: p.reps })
+        ),
+      },
+    })
+  );
 }
 
 function leaveRoom(ws, { sessionId }) {
   // L'usuari haurà de tenir ws.userId assignat per funcionar
   if (!sessions[sessionId]) return;
-  
+
   // Cridar a removeFromSessions per fer la neteja i el broadcast
   removeFromSessions(ws);
-  
+
   // Opcional: enviar missatge de sistema, ja que removeFromSessions ja ho fa implícitament
   // broadcastMessage(sessionId, { system: true, message: `${ws.username} ha sortit de la sala.` });
 }
 
 function removeFromSessions(ws) {
   const sessionId = ws.sessionId;
-  const userId = ws.userId; 
+  const userId = ws.userId;
 
   if (sessionId && sessions[sessionId]) {
     // 1. Eliminar del llistat de clients
-    sessions[sessionId].clients = sessions[sessionId].clients.filter(client => client !== ws);
-    
+    sessions[sessionId].clients = sessions[sessionId].clients.filter(
+      (client) => client !== ws
+    );
+
     // 2. Eliminar del Leaderboard
     if (sessions[sessionId].participants[userId]) {
-        broadcastMessage(sessionId, { system: true, message: `${sessions[sessionId].participants[userId].username} ha sortit de la sala.` });
-        delete sessions[sessionId].participants[userId];
+      broadcastMessage(sessionId, {
+        system: true,
+        message: `${sessions[sessionId].participants[userId].username} ha sortit de la sala.`,
+      });
+      delete sessions[sessionId].participants[userId];
     }
-    
+
     // 3. Actualitzar la classificació immediatament
     broadcastLeaderboard(sessionId);
-    
+
     // Neteja final: Si la sala queda buida, l'eliminem
     if (sessions[sessionId].clients.length === 0) {
-        delete sessions[sessionId];
-        console.log(`Sala ${sessionId} eliminada per estar buida.`);
+      delete sessions[sessionId];
+      console.log(`Sala ${sessionId} eliminada per estar buida.`);
     }
   }
 }
@@ -351,13 +377,16 @@ function removeFromSessions(ws) {
 function broadcastMessage(sessionId, message) {
   const session = sessions[sessionId];
   if (!session || !session.clients) return;
- 
-  session.clients.forEach(client => {
+
+  session.clients.forEach((client) => {
     if (client.readyState === client.OPEN) {
       client.send(JSON.stringify(message));
     }
   });
 }
-module.exports = { initGameSocket };
 
-
+module.exports = {
+  initGameSocket,
+  checkGlobalRecord,
+  saveResultToDatabase,
+};
