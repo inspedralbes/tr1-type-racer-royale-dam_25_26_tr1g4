@@ -102,7 +102,7 @@ const handlePoseEstimate = (keypoints) => {
 // --- Timer Functions ---
 function startPreparationTimer() {
   showCountdown.value = true;
-  countdown.value = 3;
+  countdown.value = 10;
   let interval = setInterval(() => {
     countdown.value--;
     if (countdown.value === 0) {
