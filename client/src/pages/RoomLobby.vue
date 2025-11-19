@@ -1,26 +1,24 @@
 <template>
   <div>
     <v-app-bar class="minimal-nav" dark flat height="58">
-      <v-toolbar-title class="text-h5 nav-title font-weight-light">
+      <v-toolbar-title class="text-h5 nav-title font-weight-light" @click="router.push({ name: 'lobby' })"
+        style="cursor: pointer;">
         <v-icon left color="white">mdi-run-fast</v-icon>
-        FitAI<span class="font-weight-bold ml-1">AI</span>
+        Fit<span class="font-weight-bold ml-1">AI</span>
       </v-toolbar-title>
 
       <v-spacer></v-spacer>
 
-      <v-btn @click="exitRoom" text class="nav-item text-red-accent-2 mr-2">
-        <v-icon left>mdi-exit-to-app</v-icon>
-        SALIR
-      </v-btn>
-
+       <!-- LÒGICA DEL MENÚ DE PERFIL INTEGRAT -->
       <div class="profile-menu-integrated">
         <v-menu offset-y>
           <template v-slot:activator="{ props }">
-            <v-btn v-bind="props" icon class="nav-profile-btn-adjusted">
-              <v-avatar color="primary">
+            <v-btn v-bind="props" class="profile-btn-fix" rounded="circle" flat aria-label="Menú de Perfil">
+              <v-avatar color="#4A148C" class="profile-avatar-fix">
                 <span class="white--text text-h5">{{ userInitial }}</span>
               </v-avatar>
             </v-btn>
+
           </template>
           <v-list>
             <v-list-item :to="{ name: 'profile' }">
@@ -33,6 +31,7 @@
         </v-menu>
       </div>
     </v-app-bar>
+
   </div>
 
   <v-container

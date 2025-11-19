@@ -1,40 +1,36 @@
 <template class="lobby">
   <div>
-    <v-app-bar
-      class="minimal-nav" 
-      dark 
-      flat
-      height="58"> 
-      
-      <v-toolbar-title class="text-h5 nav-title font-weight-light">
-        <v-icon left color="rgba(0, 0, 0, 1)">mdi-run-fast</v-icon> 
-        FitAI<span class="font-weight-bold ml-1">AI</span>
+     <v-app-bar class="minimal-nav" dark flat height="58">
+      <v-toolbar-title class="text-h5 nav-title font-weight-light" @click="router.push({ name: 'lobby' })"
+        style="cursor: pointer;">
+        <v-icon left color="white">mdi-run-fast</v-icon>
+        Fit<span class="font-weight-bold ml-1">AI</span>
       </v-toolbar-title>
 
       <v-spacer></v-spacer>
 
-      <v-btn text class="nav-item">
-        INICI
-      </v-btn>
+       <!-- LÒGICA DEL MENÚ DE PERFIL INTEGRAT -->
+      <div class="profile-menu-integrated">
+        <v-menu offset-y>
+          <template v-slot:activator="{ props }">
+            <v-btn v-bind="props" class="profile-btn-fix" rounded="circle" flat aria-label="Menú de Perfil">
+              <v-avatar color="#4A148C" class="profile-avatar-fix">
+                <span class="white--text text-h5">{{ userInitial }}</span>
+              </v-avatar>
+            </v-btn>
 
-      <v-btn text class="nav-item">
-        PANELL
-      </v-btn>
-      
-      <v-btn text class="nav-item">
-        PLANS
-      </v-btn>
-
-      <v-btn 
-        fab 
-        small 
-        class="nav-profile-btn"
-      >
-        <v-icon>mdi-account</v-icon>
-      </v-btn>
-
+          </template>
+          <v-list>
+            <v-list-item :to="{ name: 'profile' }">
+              <v-list-item-title>Mi Perfil</v-list-item-title>
+            </v-list-item>
+            <v-list-item @click="logout">
+              <v-list-item-title>Cerrar Sesión</v-list-item-title>
+            </v-list-item>
+          </v-list>
+        </v-menu>
+      </div>
     </v-app-bar>
-
     </div>
 <v-container class="pb-0 pt-15" style="background-color: transparent;">
 <v-row justify="center" align-start>
@@ -44,7 +40,7 @@
 >
 <v-tabs v-model="tab" bg-color="transparent" fixed-tabs color="#ffffff" class="cutive-mono-tabs">
 <v-tab value="private">Sala Privada</v-tab>
-<v-tab value="public">Salas Públicas</v-tab>
+<v-tab value="public">Sala Pública</v-tab>
 </v-tabs>
 
  <v-window v-model="tab">
@@ -59,13 +55,13 @@
     </v-alert>
     
     <v-form @submit.prevent="unirseSalaPrivada">
-        <h3 class="mb-3" style="font-family: 'Cutive Mono', monospace; color: #ffffff;">Unirse a Sala Existent</h3>
+        <h3 class="mb-3" style="font-family: 'Cutive Mono', monospace; color: #ffffff;">Unir-se a Sala Existent</h3>
         <br></br>
         <br></br>
         <v-text-field v-model="salaPrivada.id" label="ID de la Sala" prepend-inner-icon="mdi-pound" variant="outlined" class="mb-3 v-text-field" :disabled="loading" required dark filled></v-text-field>
         <br></br>
         <v-btn type="submit" block color="rgba(168, 160, 160, 1)" size="large" :loading="loading" class="mb-6 primary-action-btn" variant="tonal" elevation="6">
-        Unirse
+        Unir-se'n
         </v-btn>
     </v-form>
 
@@ -76,7 +72,7 @@
 <v-window-item value="public">
 <v-card-text class="pa-5">
 <br></br>
-    <h3 class="mb-4" style="font-family: 'Cutive Mono', monospace; color: #ffffff;">Salas Públicas Disponibles</h3>
+    <h3 class="mb-4" style="font-family: 'Cutive Mono', monospace; color: #ffffff;">Sales Públiques Disponibles</h3>
 
     <v-list lines="two" bg-color="transparent" class="cutive-mono-list">
   <v-list-item v-for="sala in salasPublicas" :key="sala.id" :title="`Sala ${sala.id}`" :subtitle="`Ejercicio: ${sala.exercise}`">
@@ -113,7 +109,7 @@
  <v-col cols="12" md="6" sm="12" class="pa-0 pa-md-2 mt-0">
  <v-card class="elevation-12 leaderboard-panel rounded-lg" color="#000000c4">
  <v-card-title class="text-center text-white v-card-title" style="background-color: #121212; border-radius: 8px 8px 0 0;">
- Tabla de Clasificación Global
+ Taula de classificació global
 </v-card-title>
 
  <GlobalLeaderboard />
