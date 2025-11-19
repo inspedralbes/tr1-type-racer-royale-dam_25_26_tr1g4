@@ -3,7 +3,7 @@
     <v-menu offset-y>
       <template v-slot:activator="{ props }">
         <v-btn v-bind="props" icon>
-          <v-avatar color="primary">
+          <v-avatar color="#4A148C 100%">
             <span class="white--text text-h5">{{ userInitial }}</span>
           </v-avatar>
         </v-btn>

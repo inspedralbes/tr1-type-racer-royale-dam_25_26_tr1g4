@@ -178,7 +178,12 @@ watch(() => wsStore.lastMessage, (newMessage) => {
 
         <p v-else>¡Ya estás listo!</p>
 
-        <v-progress-circular indeterminate color="primary" size="64"></v-progress-circular>
+        <v-progress-circular
+          indeterminate
+          color="#ffc107"
+          size="64"
+          class="mt-4"
+        ></v-progress-circular>
 
       </div>
 
@@ -216,7 +221,14 @@ watch(() => wsStore.lastMessage, (newMessage) => {
 
         </ol>
 
-        <v-btn color="primary" @click="$router.push('/lobby')" class="mt-4">
+       <v-btn
+          color="primary"
+          @click="$router.push('/lobby')"
+          class="mt-4 primary-action-btn"
+          rounded="lg"
+          variant="tonal"
+          elevation="6"
+        >
 
           Volver al Lobby
 
@@ -227,23 +239,14 @@ watch(() => wsStore.lastMessage, (newMessage) => {
     </div>
 
 
-
-    <div class="video-container">
-
+ <div class="video-container">
       <video
-
         ref="videoRef"
-
         playsinline
-
         muted
-
         autoplay
-
         class="video-feed"
-
       ></video>
-
     </div>
 
 
@@ -262,22 +265,17 @@ watch(() => wsStore.lastMessage, (newMessage) => {
 
         <!-- Game Timer -->
 
+       <!-- Game Timer -->
         <div v-if="isGameRunning" class="game-timer">
-
           Tiempo restante: {{ gameTime }}s
-
         </div>
 
 
-
+        
         <div class="counter-box">
-
           <div class="counter-value">{{ repCounter }}</div>
-
           <div class="counter-label">Repeticiones</div>
-
         </div>
-
 
 
         <div class="feedback-box">
@@ -326,472 +324,326 @@ watch(() => wsStore.lastMessage, (newMessage) => {
 
     <!-- Chat Button -->
 
-    <v-btn
-
-      color="primary"
-
+ <v-btn
       icon
-
       size="large"
-
       class="chat-toggle-button"
-
       @click="toggleChat"
-
+      color="white"
     >
 
-      <v-icon>{{ chatOpen ? 'mdi-close' : 'mdi-chat' }}</v-icon>
-
+       <v-icon>{{ chatOpen ? 'mdi-close' : 'mdi-chat' }}</v-icon>
     </v-btn>
-
 
 
     <!-- Chat Panel -->
 
+ <!-- Chat Panel -->
     <div class="chat-panel" :class="{ 'chat-panel-open': chatOpen }">
-
       <Chat
-
         :messages="chatMessages"
-
         :username="props.username"
-
         @send-message="handleSendMessage"
-
       />
-
     </div>
-
   </div>
-
 </template>
 
 
 
 <style scoped>
-
-.page-container {
-
-  display: flex;
-
-  width: 100vw;
-
-  height: 100vh;
-
-  background: #111;
-
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica,
-
-    Arial, sans-serif;
-
-  color: white;
-
+/* Tipografia Cutive Mono per a tots els elements d'UI */
+.title,
+.game-timer,
+.feedback-message,
+.leaderboard-title,
+.counter-label,
+.counter-value,
+.results-panel,
+.overlay-content h2,
+.overlay-content p {
+  font-family: 'Cutive Mono', monospace !important;
+  letter-spacing: 1px;
 }
 
 
+.page-container {
+  display: flex;
+  width: 100vw;
+  height: 100vh;
+  background: #0d0d0d; /* Fons molt fosc */
+  color: white;
+}
+
+
+.primary-action-btn {
+  font-family: 'Cutive Mono', monospace !important;
+  font-weight: 400;
+  letter-spacing: 1px;
+  background-color: rgba(168, 160, 160, 0.1) !important; /* Fons subtil per la variant tonal */
+}
+.primary-action-btn:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+  border-bottom: 2px solid #ffc107; /* Accent de l'hover amb color taronja */
+}
 
 .overlay {
-
   position: fixed;
-
   top: 0;
-
   left: 0;
-
   width: 100%;
-
   height: 100%;
-
-  background: rgba(0, 0, 0, 0.8);
-
+  background: rgba(0, 0, 0, 0.9);
   display: flex;
-
   justify-content: center;
-
   align-items: center;
-
   z-index: 200;
-
-  color: white;
-
 }
 
 
 
 .overlay-content {
-
-  text-align: center;
-
-  padding: 40px;
-
+  /* Utilitza l'estil del frosted-card del login */
   background: #1e1e1e;
-
+  border: 2px solid #402c42;
   border-radius: 12px;
-
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
-
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.8);
+  padding: 40px;
+  text-align: center;
 }
 
 
 
 .overlay-title {
-
-  font-size: 2rem;
-
-  margin-bottom: 20px;
-
+  color: #ffc107;
 }
-
 
 
 .results-panel .leaderboard-list {
-
-  text-align: left;
-
-  margin-top: 20px;
-
-  width: 300px;
-
+  width: 100%; /* Ajustem l'amplada de la llista dins del panell */
 }
 
 
-
 .game-timer {
-
-  font-size: 1.5rem;
-
+  font-size: 1.6rem;
   font-weight: bold;
-
-  color: #ffc107;
-
-  margin-bottom: 10px;
-
+  color: #00c8ff; /* Color cian per al temps */
+  padding: 5px 15px;
+  border: 1px solid #00c8ff;
+  border-radius: 4px;
 }
 
 
 
 .video-container {
-
-  flex: 3; /* Ocupa 3/4 parts de l'espai */
-
+  flex: 3;
   display: flex;
-
   justify-content: center;
-
   align-items: center;
-
   background: #000;
-
-  padding: 20px;
-
+  padding: 10px;
   box-sizing: border-box;
-
 }
 
 
 
 .video-feed {
-
   width: 100%;
-
   height: 100%;
-
-  object-fit: contain; /* 'contain' per evitar deformacions */
-
-  border-radius: 12px;
-
+  object-fit: contain;
+  border-radius: 10px;
+  box-shadow: 0 0 15px rgba(0, 255, 255, 0.2); /* Ombra subtil de neó */
 }
 
-
-
 .sidebar {
-
-  flex: 1; /* Ocupa 1/4 part de l'espai */
-
+  flex: 1;
   display: flex;
-
   flex-direction: column;
-
+  /* Fons fosc i opac similar al frosted-card */
   background: #1e1e1e;
-
   padding: 20px;
-
   box-sizing: border-box;
-
   gap: 20px;
-
   height: 100vh;
-
   overflow-y: auto;
-
+  /* Borda i ombra cohesionada */
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+  border-left: 2px solid #3d2242; /* Vora fosca d'accent */
 }
 
 
 
 .skeleton-canvas {
-
   width: 100%;
-
-  aspect-ratio: 16 / 9; /* Mantenir la proporció del vídeo */
-
+  aspect-ratio: 16 / 9;
   background: #000;
-
   border-radius: 8px;
-
+  border: 1px solid #402c42;
 }
 
 
 
+
 .ui-panel {
-
   display: flex;
-
   flex-direction: column;
-
   align-items: center;
-
   gap: 20px;
-
   width: 100%;
-
 }
 
 
 
 .title {
-
-  font-size: 1.5rem;
-
-  font-weight: 600;
-
-  text-align: center;
-
-  margin: 0;
-
-  color: #f5f5f5;
-
+  color: #ffc107; /* Color d'accent per al títol */
+  font-size: 1.8rem;
+  text-transform: uppercase;
+  border-bottom: 2px dashed rgba(255, 193, 7, 0.3);
+  padding-bottom: 5px;
+  margin-top: 5px;
 }
 
 
 
 .counter-box {
-
-  width: 150px;
-
-  height: 150px;
-
-  border-radius: 50%;
-
-  border: 8px solid #00c8ff;
-
-  display: flex;
-
-  flex-direction: column;
-
-  justify-content: center;
-
-  align-items: center;
-
-  background: rgba(0, 0, 0, 0.3);
-
+  width: 100%;
+  padding: 15px 10px;
+  text-align: center;
+  /* Fons i vora estilitzats */
+  background-color: #2a2a2a; /* Color fosc 'filled' */
+  border-radius: 8px;
+  border: 3px solid #00c8ff; /* Vora cian destacada */
+  box-shadow: 0 0 10px rgba(0, 200, 255, 0.5); /* Efecte neó suau */
 }
 
 
 
 .counter-value {
-
-  font-size: 4.5rem;
-
-  font-weight: 700;
-
-  line-height: 1;
-
+  font-size: 5rem;
+  color: #00c8ff; /* Cian destacat */
+  text-shadow: 0 0 10px rgba(0, 200, 255, 0.8);
 }
+
 
 
 
 .counter-label {
-
-  font-size: 0.9rem;
-
-  text-transform: uppercase;
-
-  letter-spacing: 1px;
-
   color: #ccc;
-
-  margin-top: 5px;
-
 }
 
 
-
-.feedback-box {
-
+.feedback-box,
+.leaderboard-panel {
   width: 100%;
-
-  background: rgba(0, 0, 0, 0.3);
-
-  padding: 16px;
-
+  padding: 15px;
   border-radius: 8px;
-
-  text-align: center;
-
+  background: #2a2a2a; /* Color fosc 'filled' */
+  border: 1px solid #402c42;
+  box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.5);
 }
-
-
 
 .feedback-message {
-
-  font-size: 1.1rem;
-
-  font-weight: 600;
-
   color: #ffc107;
-
-  min-height: 1.25em;
-
+  font-size: 1.1rem;
+  text-align: center;
 }
 
-
-
-.leaderboard-panel {
-
-  width: 100%;
-
-  padding: 16px;
-
-  background: rgba(0, 0, 0, 0.3);
-
-  border-radius: 8px;
-
-}
 
 
 
 .leaderboard-title {
-
-  font-size: 1.1rem;
-
-  margin: 0 0 10px 0;
-
-  color: #00c8ff;
-
-  text-align: center;
-
+  color: #ffc107; /* Taronja per al títol del leaderboard */
+  font-weight: 600 !important;
+  margin-bottom: 10px;
+  border-bottom: 1px solid rgba(255, 193, 7, 0.1);
+  padding-bottom: 5px;
 }
-
 
 
 .leaderboard-list {
-
-  list-style: none;
-
+  list-style-type: none;
   padding: 0;
-
-  margin: 0;
-
-  font-size: 1rem;
-
+  color: #f5f5f5;
 }
-
-
 
 .leaderboard-list li {
-
   padding: 5px 0;
-
   display: flex;
-
   justify-content: space-between;
-
   border-bottom: 1px dashed rgba(255, 255, 255, 0.1);
-
+  transition: background-color 0.2s;
 }
 
 
+.leaderboard-list li:hover {
+  background-color: rgba(64, 44, 66, 0.3);
+}
 
 .leaderboard-list li:last-child {
-
   border-bottom: none;
-
 }
 
 
 
 .highlight-self {
-
-  font-weight: bold;
-
-  color: #ffc107;
-
-  background-color: rgba(255, 255, 255, 0.1);
-
-  padding: 5px;
-
-  margin: 2px 0;
-
+  color: #ffc107; /* Resaltem l'usuari amb el color d'accent */
+  font-weight: 700 !important;
+  background-color: rgba(255, 193, 7, 0.1) !important;
   border-radius: 4px;
-
 }
 
 
 
 .chat-toggle-button {
-
   position: fixed;
+  bottom: 30px;
+  right: 30px;
+  z-index: 100;
+  /* Estil del botó d'acció principal */
+  background-color: #402c42 !important; /* Color fosc d'accent */
+  color: #ffffff !important;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
+}
 
-  bottom: 20px;
+.chat-toggle-button:hover {
+  transform: scale(1.1);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.6);
+  background-color: #5c3b60 !important;
+}
 
-  right: 20px;
 
-  z-index: 100; /* Ensure it's above everything */
+.overlay-content {
+    /* Afegim el fons fosc i la vora subtil del 'frosted-card' */
+    background: #1e1e1e;
+    border: 1px solid #402c42;
+    color: #fafcffff;
+}
 
+.overlay-title {
+    color: hsla(276, 70%, 91%, 0.897) !important;
 }
 
 
 
 .chat-panel {
-
   position: fixed;
-
   bottom: 20px;
-
   right: 20px;
-
   width: 360px;
-
   height: 450px;
-
   z-index: 99;
-
   transform: translateY(calc(100% + 20px));
-
   transition: transform 0.3s ease-in-out;
-
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-
   border-radius: 12px;
-
   overflow: hidden;
-
-  /* Ensure a solid, opaque background */
-
-  background-color: #363636;
-
-  /* Remove any potential blur effect from parent elements */
-
-  backdrop-filter: none;
-
+  /* Fons de xat fosc i opac */
+  background-color: #2a2a2a;
 }
 
-
-
 .chat-panel-open {
-
   transform: translateY(0);
-
 }
 
 
@@ -799,23 +651,31 @@ watch(() => wsStore.lastMessage, (newMessage) => {
 /* Media query for smaller screens (e.g., mobile phones) */
 
 @media (max-width: 600px) {
-
-  .chat-panel {
-
-    /* Full width on small screens, with a small margin */
-
-    width: calc(100% - 40px);
-
-    height: 70vh; /* Use a percentage of the viewport height */
-
-    right: 20px;
-
-    left: 20px;
-
-    bottom: 20px;
-
+  .page-container {
+    flex-direction: column;
   }
-
+  .video-container {
+    flex: none;
+    height: 60vh;
+    padding: 10px;
+  }
+  .sidebar {
+    flex: none;
+    height: 40vh;
+    border-left: none;
+    border-top: 2px solid #3d2242;
+  }
+  .chat-panel {
+    width: calc(100% - 40px);
+    height: 50vh;
+    right: 20px;
+    left: 20px;
+    bottom: 20px;
+  }
+  .chat-toggle-button {
+    bottom: 80px; /* Pujar el botó per damunt del panell de xat */
+    right: 30px;
+  }
 }
 
 </style>

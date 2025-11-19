@@ -1,39 +1,36 @@
 <template class = "lobby">
   <div>
- <v-app-bar
-class="minimal-nav" 
-dark 
- flat
- height="58"> 
+ <v-app-bar class="minimal-nav" dark flat height="58">
+      <v-toolbar-title class="text-h5 nav-title font-weight-light" @click="router.push({ name: 'lobby' })"
+        style="cursor: pointer;">
+        <v-icon left color="white">mdi-run-fast</v-icon>
+        Fit<span class="font-weight-bold ml-1">AI</span>
+      </v-toolbar-title>
 
- <v-toolbar-title class="text-h5 nav-title font-weight-light">
-<v-icon left color="rgba(0, 0, 0, 1)">mdi-run-fast</v-icon> 
-FitAI<span class="font-weight-bold ml-1">AI</span>
-</v-toolbar-title>
+      <v-spacer></v-spacer>
 
-<v-spacer></v-spacer>
+       <!-- LÒGICA DEL MENÚ DE PERFIL INTEGRAT -->
+      <div class="profile-menu-integrated">
+        <v-menu offset-y>
+          <template v-slot:activator="{ props }">
+            <v-btn v-bind="props" class="profile-btn-fix" rounded="circle" flat aria-label="Menú de Perfil">
+              <v-avatar color="#4A148C" class="profile-avatar-fix">
+                <span class="white--text text-h5">{{ userInitial }}</span>
+              </v-avatar>
+            </v-btn>
 
- <v-btn text class="nav-item">
-INICI
- </v-btn>
-
-<v-btn text class="nav-item">
-PANELL
-</v-btn>
-
-<v-btn text class="nav-item">
-PLANS
- </v-btn>
-
- <v-btn 
- fab 
-  small 
-class="nav-profile-btn"
->
- <v-icon>mdi-account</v-icon>
-</v-btn>
-
- </v-app-bar>
+          </template>
+          <v-list>
+            <v-list-item :to="{ name: 'profile' }">
+              <v-list-item-title>Mi Perfil</v-list-item-title>
+            </v-list-item>
+            <v-list-item @click="logout">
+              <v-list-item-title>Cerrar Sesión</v-list-item-title>
+            </v-list-item>
+          </v-list>
+        </v-menu>
+      </div>
+    </v-app-bar>
 
 </div>
   <v-container class="pt-10 pb-0" fluid>
