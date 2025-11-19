@@ -37,7 +37,7 @@
                 size="64"
               ></v-progress-circular>
               <p class="mt-3" style="color: rgba(255, 255, 255, 0.7)">
-                Cargando estadísticas...
+                Carregant estadístiques...
               </p>
             </div>
 
@@ -48,7 +48,7 @@
               class="cutive-mono-list profile-list compact-list"
             >
               <v-list-item
-                title="Victorias"
+                title="Victòries"
                 :subtitle="stats.wins"
                 class="list-item-style"
               >
@@ -58,7 +58,7 @@
               </v-list-item>
               <v-divider inset class="list-divider"></v-divider>
               <v-list-item
-                title="Derrotas"
+                title="Derrotes"
                 :subtitle="stats.losses"
                 class="list-item-style"
               >
@@ -68,7 +68,7 @@
               </v-list-item>
               <v-divider inset class="list-divider"></v-divider>
               <v-list-item
-                title="Partidas Jugadas"
+                title="Partides Jugades"
                 :subtitle="stats.totalGames"
                 class="list-item-style"
               >
@@ -79,7 +79,7 @@
               <v-divider inset class="list-divider"></v-divider>
 
               <v-list-item
-                title="Repeticiones Totales"
+                title="Repeticions Totals"
                 :subtitle="stats.totalReps"
                 class="list-item-style"
               >
@@ -90,7 +90,7 @@
               <v-divider inset class="list-divider"></v-divider>
 
               <v-list-item
-                title="Máximas Repeticiones (en partida)"
+                title="Màximes Repeticions (en partida)"
                 :subtitle="stats.maxRepsInAGame"
                 class="list-item-style"
               >
@@ -119,7 +119,7 @@ onMounted(async () => {
   const username = localStorage.getItem("username");
   if (!username) {
     error.value =
-      "No se ha encontrado el nombre de usuario. Por favor, inicia sesión de nuevo.";
+      "No s'ha trobat el nom d'usuari. Si us plau, inicia sessió de nou.";
     loading.value = false;
     return;
   }
@@ -128,7 +128,7 @@ onMounted(async () => {
     const data = await api.get(`/stats/${username}`);
     stats.value = data;
   } catch (err) {
-    error.value = err.message || "No se pudieron cargar las estadísticas.";
+    error.value = err.message || "No s'han pogut carregar les estadístiques.";
   } finally {
     loading.value = false;
   }

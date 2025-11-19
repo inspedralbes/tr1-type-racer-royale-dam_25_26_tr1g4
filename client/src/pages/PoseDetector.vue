@@ -47,7 +47,7 @@ const videoRef = ref(null);
 const canvasRef = ref(null);
 const repCounter = ref(0);
 const exerciseState = ref("up");
-const feedbackMsg = ref("¡Prepárate!");
+const feedbackMsg = ref("Prepara't!");
 
 let poseDetectionService = null;
 
@@ -94,10 +94,10 @@ const handlePoseEstimate = (keypoints) => {
     if (analyzer) {
       analyzer(keypoints, exerciseState, handleRepetition, handleFeedback);
     } else {
-      feedbackMsg.value = `Ejercicio '${props.exercise}' no reconocido.`;
+      feedbackMsg.value = `Exercici '${props.exercise}' no reconegut.`;
     }
   } else {
-    feedbackMsg.value = "Buscando persona...";
+    feedbackMsg.value = "Buscant persona...";
   }
 };
 
@@ -110,7 +110,7 @@ function startPreparationTimer() {
     if (countdown.value === 0) {
       clearInterval(interval);
       showCountdown.value = false;
-      feedbackMsg.value = "¡YA!";
+      feedbackMsg.value = "JA!";
     }
   }, 1000);
 }
@@ -194,7 +194,7 @@ watch(
       case "new_global_record":
         // Podrías usar un toast/notificación aquí
         console.log("RECORD:", newMessage.payload.message);
-        feedbackMsg.value = "🏆 ¡NUEVO RÉCORD!"; // Feedback visual rápido
+        feedbackMsg.value = "🏆 NOU RÈCORD!"; // Feedback visual rápido
         break;
     }
   }
@@ -214,9 +214,9 @@ const goBackToLobby = () => {
     <Countdown v-if="showCountdown" :countdown="countdown" />
     <div v-if="!areAllPlayersReady" class="overlay">
       <div class="overlay-content">
-        <h2 class="overlay-title">Esperando al resto de jugadores...</h2>
-        <p v-if="!isCameraReady">Iniciando cámara y modelo...</p>
-        <p v-else>¡Ya estás listo!</p>
+        <h2 class="overlay-title">Esperant a la resta de jugadors...</h2>
+        <p v-if="!isCameraReady">Iniciant càmara i models...</p>
+        <p v-else>Ja està llest!</p>
 
         <v-progress-circular
           indeterminate
@@ -229,8 +229,8 @@ const goBackToLobby = () => {
 
     <div v-if="isGameFinished" class="overlay">
       <div class="overlay-content results-panel">
-        <h2 class="overlay-title">¡Partida Terminada!</h2>
-        <h3 class="leaderboard-title">Resultados Finales</h3>
+        <h2 class="overlay-title">Partida Acabada!</h2>
+        <h3 class="leaderboard-title">Resultats Finals</h3>
         <ol class="leaderboard-list">
           <li
             v-for="(p, index) in finalLeaderboard"
@@ -250,7 +250,7 @@ const goBackToLobby = () => {
           variant="tonal"
           elevation="6"
         >
-          Volver al Lobby
+          Torna al Lobby
         </v-btn>
       </div>
     </div>
@@ -275,12 +275,12 @@ const goBackToLobby = () => {
 
         <!-- Game Timer -->
         <div v-if="isGameRunning" class="game-timer">
-          Tiempo restante: {{ gameTime }}s
+          Temps restant: {{ gameTime }}s
         </div>
 
         <div class="counter-box">
           <div class="counter-value">{{ repCounter }}</div>
-          <div class="counter-label">Repeticiones</div>
+          <div class="counter-label">Repeticions</div>
         </div>
 
         <div class="feedback-box">

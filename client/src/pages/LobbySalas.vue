@@ -43,22 +43,22 @@
     <h3 class="mb-4" style="font-family: 'Cutive Mono', monospace; color: #ffffff;">Sales Públiques Disponibles</h3>
 
     <v-list lines="two" bg-color="transparent" class="cutive-mono-list">
-  <v-list-item v-for="sala in salasPublicas" :key="sala.id" :title="`Sala ${sala.id}`" :subtitle="`Ejercicio: ${sala.exercise}`">
+  <v-list-item v-for="sala in salasPublicas" :key="sala.id" :title="`Sala ${sala.id}`" :subtitle="`Exercici: ${sala.exercise}`">
     <template v-slot:append>
     <v-chip class="mr-4" color="rgba(255, 255, 255, 0.2)" label size="small" variant="flat">{{ sala.jugadores }} / {{ sala.maxJugadores }}</v-chip>
     <v-btn @click="unirseSalaPublica(sala.id)" :disabled="sala.jugadores >= sala.maxJugadores || loading" color="#ffffff" variant="text" class="secondary-action-btn">
-    {{ sala.jugadores >= sala.maxJugadores ? "Llena" : "Unirse" }}
+    {{ sala.jugadores >= sala.maxJugadores ? "Plena" : "Unir-se" }}
     </v-btn>
     </template>
     </v-list-item>
     </v-list>
     <v-alert v-if="!loading && salasPublicas.length === 0" type="info" variant="tonal" class="mt-4" color="#402c42">
-    No hay salas públicas disponibles en este momento.
+    No hi ha sales públiques disponibles en aquest moment.
     </v-alert>
 
     <v-divider class="my-6"></v-divider>
 
-     <h3 class="mb-4" style="font-family: 'Cutive Mono', monospace; color: #ffffff;">o crear sala Pública</h3>
+     <h3 class="mb-4" style="font-family: 'Cutive Mono', monospace; color: #ffffff;">o crear una sala Pública</h3>
      
     <v-btn @click="crearSalaPublica" block size="large" class="mb-6 primary-action-btn" color="rgba(168, 160, 160, 1)" :loading="loading" rounded="lg" elevation="6" variant="tonal">
     Crear Sala Pública
@@ -132,7 +132,7 @@ function crearSalaPublica() {
 
 function unirseSalaPrivada() {
   if (!salaPrivada.value.id) {
-    wsStore.error = "Por favor, introduce un ID de sala.";
+    wsStore.error = "Si us plau, introdueix un ID de sala.";
     return;
   }
   loading.value = true;
@@ -151,7 +151,7 @@ onMounted(() => {
   loading.value = true;
   const username = localStorage.getItem("username");
   if (!username) {
-    wsStore.error = "Error de autenticación. Por favor, inicia sesión de nuevo.";
+    wsStore.error = "Error d'autenticació. Si us plau, inicia sessió de nou.";
     loading.value = false;
     return;
   }
@@ -168,7 +168,7 @@ onMounted(() => {
 
   const connectionTimeout = setTimeout(() => {
     if (!wsStore.isConnected) {
-      wsStore.error = "No se pudo conectar con el servidor de salas.";
+      wsStore.error = "No s'ha pogut connectar amb el servidor de sales.";
       loading.value = false;
     }
   }, 5000);

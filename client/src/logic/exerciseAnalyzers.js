@@ -1,8 +1,21 @@
 const keypointNames = [
-  "nose", "left_eye", "right_eye", "left_ear", "right_ear",
-  "left_shoulder", "right_shoulder", "left_elbow", "right_elbow",
-  "left_wrist", "right_wrist", "left_hip", "right_hip",
-  "left_knee", "right_knee", "left_ankle", "right_ankle",
+  "nose",
+  "left_eye",
+  "right_eye",
+  "left_ear",
+  "right_ear",
+  "left_shoulder",
+  "right_shoulder",
+  "left_elbow",
+  "right_elbow",
+  "left_wrist",
+  "right_wrist",
+  "left_hip",
+  "right_hip",
+  "left_knee",
+  "right_knee",
+  "left_ankle",
+  "right_ankle",
 ];
 
 function getKp(keypoints, name) {
@@ -17,7 +30,8 @@ function getKp(keypoints, name) {
 
 function calcularAngulo(a, b, c) {
   if (!a || !b || !c) return null;
-  const rad = Math.atan2(c.y - b.y, c.x - b.x) - Math.atan2(a.y - b.y, a.x - b.x);
+  const rad =
+    Math.atan2(c.y - b.y, c.x - b.x) - Math.atan2(a.y - b.y, a.x - b.x);
   let angulo = Math.abs((rad * 180.0) / Math.PI);
   if (angulo > 180) {
     angulo = 360 - angulo;
@@ -32,7 +46,7 @@ export function analizarSentadilla(keypoints, state, onRep, onFeedback) {
   const ankle = getKp(keypoints, "left_ankle");
 
   if (!shoulder || !hip || !knee || !ankle) {
-    onFeedback("No te veo bien");
+    onFeedback("No et veig bé");
     return;
   }
 
@@ -46,7 +60,7 @@ export function analizarSentadilla(keypoints, state, onRep, onFeedback) {
   const UMBRAL_ESPALDA = 150;
 
   if (state.value === "down" && anguloEspalda < UMBRAL_ESPALDA) {
-    onFeedback("¡Espalda recta!");
+    onFeedback("Esquena recta!");
   } else if (state.value === "down") {
     onFeedback("¡Sube!");
   } else if (state.value === "up" && anguloRodilla > UMBRAL_ARRIBA) {
@@ -64,7 +78,7 @@ export function analizarSentadilla(keypoints, state, onRep, onFeedback) {
   }
 }
 
-// Placeholder for other exercises
+// Placeholder per a altres exercicis
 function analizarFlexiones(keypoints, state, onRep, onFeedback) {
   const shoulder = getKp(keypoints, "left_shoulder");
   const elbow = getKp(keypoints, "left_elbow");
@@ -73,7 +87,7 @@ function analizarFlexiones(keypoints, state, onRep, onFeedback) {
   const knee = getKp(keypoints, "left_knee");
 
   if (!shoulder || !elbow || !wrist || !hip || !knee) {
-    onFeedback("No te veo bien, ponte de lado");
+    onFeedback("No et veig bé, posat de cantó");
     return;
   }
 
@@ -87,11 +101,11 @@ function analizarFlexiones(keypoints, state, onRep, onFeedback) {
   const UMBRAL_CADERA = 150; // Umbral para mantener la espalda recta
 
   if (anguloCadera < UMBRAL_CADERA) {
-    onFeedback("¡Mantén la espalda recta!");
+    onFeedback("Esquena recta!");
   } else if (state.value === "down") {
-    onFeedback("¡Sube!");
+    onFeedback("Puja!");
   } else if (state.value === "up") {
-    onFeedback("¡Baja!");
+    onFeedback("Baixa!");
   }
 
   // Transición a 'down'
@@ -103,7 +117,7 @@ function analizarFlexiones(keypoints, state, onRep, onFeedback) {
   if (anguloCodo > UMBRAL_ARRIBA && state.value === "down") {
     state.value = "up";
     onRep();
-    onFeedback("¡Bien!");
+    onFeedback("Bé!");
   }
 }
 
@@ -113,7 +127,7 @@ function analizarAbdominales(keypoints, state, onRep, onFeedback) {
   const knee = getKp(keypoints, "left_knee");
 
   if (!shoulder || !hip || !knee) {
-    onFeedback("No te veo bien, ponte de lado");
+    onFeedback("No et veig bé, posat de cantó");
     return;
   }
 
@@ -125,9 +139,9 @@ function analizarAbdominales(keypoints, state, onRep, onFeedback) {
   const UMBRAL_ABAJO = 140; // Ángulo más abierto al estar acostado
 
   if (state.value === "down") {
-    onFeedback("¡Sube el tronco!");
+    onFeedback("Puja el tronc!");
   } else if (state.value === "up") {
-    onFeedback("¡Baja controladamente!");
+    onFeedback("¡Baja controladament!");
   }
 
   // Transición a 'up' (subiendo)
@@ -139,7 +153,7 @@ function analizarAbdominales(keypoints, state, onRep, onFeedback) {
   if (anguloTronco > UMBRAL_ABAJO && state.value === "up") {
     state.value = "down";
     onRep();
-    onFeedback("¡Perfecto!");
+    onFeedback("Perfecte!");
   }
 }
 
@@ -150,7 +164,7 @@ function analizarBurpees(keypoints, state, onRep, onFeedback) {
   const leftAnkle = getKp(keypoints, "left_ankle");
 
   if (!leftShoulder || !leftHip || !leftKnee || !leftAnkle) {
-    onFeedback("Ponte de lado, no te veo bien");
+    onFeedback("Posat de cantó, no et veig bé");
     return;
   }
 
@@ -162,27 +176,29 @@ function analizarBurpees(keypoints, state, onRep, onFeedback) {
   const shoulderY = leftShoulder.y;
   const hipY = leftHip.y;
   const ankleY = leftAnkle.y;
-  const verticalRange = Math.abs(Math.max(shoulderY, hipY, ankleY) - Math.min(shoulderY, hipY, ankleY));
+  const verticalRange = Math.abs(
+    Math.max(shoulderY, hipY, ankleY) - Math.min(shoulderY, hipY, ankleY)
+  );
   const horizontalRange = Math.abs(leftShoulder.x - leftAnkle.x);
   const isPlank = verticalRange < horizontalRange / 2.5; // Heuristic
 
   if (state.value === "up" && !dePie) {
-      onFeedback("¡Al suelo!");
+    onFeedback("Al terra!");
   } else if (state.value === "down") {
-      onFeedback("¡Ahora de pie!");
+    onFeedback("Ara de'n peus!");
   }
 
   // From standing to plank
   if (isPlank && state.value === "up") {
     state.value = "down";
-    onFeedback("¡Vamos arriba!");
+    onFeedback("Som-hi, amunt!");
   }
 
   // From plank to standing
   if (dePie && state.value === "down") {
     state.value = "up";
     onRep();
-    onFeedback("¡Uno más!");
+    onFeedback("Una més!");
   }
 }
 
@@ -194,18 +210,27 @@ function analizarJumpingJacks(keypoints, state, onRep, onFeedback) {
   const leftAnkle = getKp(keypoints, "left_ankle");
   const rightAnkle = getKp(keypoints, "right_ankle");
 
-  if (!leftWrist || !rightWrist || !leftShoulder || !rightShoulder || !leftAnkle || !rightAnkle) {
+  if (
+    !leftWrist ||
+    !rightWrist ||
+    !leftShoulder ||
+    !rightShoulder ||
+    !leftAnkle ||
+    !rightAnkle
+  ) {
     onFeedback("No te veo bien, ponte de frente");
     return;
   }
 
   const armsUp = leftWrist.y < leftShoulder.y && rightWrist.y < rightShoulder.y;
-  const legsApart = Math.abs(leftAnkle.x - rightAnkle.x) > Math.abs(leftShoulder.x - rightShoulder.x);
+  const legsApart =
+    Math.abs(leftAnkle.x - rightAnkle.x) >
+    Math.abs(leftShoulder.x - rightShoulder.x);
 
   if (state.value === "down") {
-      onFeedback("¡Salta y abre!");
+    onFeedback("Salta i obre!");
   } else if (state.value === "up") {
-      onFeedback("¡Cierra!");
+    onFeedback("Tanca!");
   }
 
   // State 'up' is when arms are up and legs are apart
@@ -214,14 +239,14 @@ function analizarJumpingJacks(keypoints, state, onRep, onFeedback) {
   }
 
   // State 'down' is when arms are down and legs are together
-  const armsDown = leftWrist.y > leftShoulder.y && rightWrist.y > rightShoulder.y;
+  const armsDown =
+    leftWrist.y > leftShoulder.y && rightWrist.y > rightShoulder.y;
   if (armsDown && !legsApart && state.value === "up") {
     state.value = "down";
     onRep();
-    onFeedback("¡Genial!");
+    onFeedback("Genial!");
   }
 }
-
 
 // Add other exercise analysis functions here...
 
@@ -230,5 +255,5 @@ export const exerciseAnalyzers = {
   flexions: analizarFlexiones,
   abdominals: analizarAbdominales,
   burpees: analizarBurpees,
-  'jumping jacks': analizarJumpingJacks,
+  "jumping jacks": analizarJumpingJacks,
 };

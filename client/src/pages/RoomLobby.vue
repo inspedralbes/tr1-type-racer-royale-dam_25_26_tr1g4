@@ -16,7 +16,7 @@
             />
           </v-avatar>
           <h1 class="text-h4 font-weight-bold text-white mb-2 cutive-mono-text">
-            Sala de Espera
+            Sala d'Espera
           </h1>
           <p class="text-medium-emphasis cutive-mono-subtitle">
             començar el teu entrenament
@@ -32,14 +32,14 @@
               {{ roomId }}
             </h2>
             <p class="text-medium-emphasis cutive-mono-subtitle">
-              Propietario: {{ owner }}
+              Propietari: {{ owner }}
             </p>
           </div>
 
           <v-divider class="mb-6 card-divider-style"></v-divider>
 
           <h3 class="text-h6 mb-2 text-white cutive-mono-text">
-            Jugadores ({{ players.length }} / {{ maxPlayers }})
+            Jugadors ({{ players.length }} / {{ maxPlayers }})
           </h3>
 
           <v-list lines="one" class="glass-list cutive-mono-list">
@@ -69,7 +69,7 @@
                   class="font-weight-bold cutive-mono-chip"
                   size="small"
                 >
-                  {{ player.ready ? "Listo" : "No Listo" }}
+                  {{ player.ready ? "Llest" : "No Llest" }}
                 </v-chip>
               </template>
             </v-list-item>
@@ -133,7 +133,7 @@
             density="compact"
           >
             <span class="text-caption"
-              >Espera a que todos estén listos para empezar.</span
+              >Espera que tothom estigui llest per començar.</span
             >
           </v-alert>
 
@@ -152,7 +152,7 @@
               class="font-weight-bold primary-action-btn"
             >
               <v-icon left class="mr-2">mdi-play</v-icon>
-              Empezar Partida
+              Començar Partida
             </v-btn>
 
             <v-btn
@@ -168,7 +168,7 @@
               <v-icon left class="mr-2">{{
                 isReady ? "mdi-close" : "mdi-check"
               }}</v-icon>
-              {{ isReady ? "No estoy listo" : "¡Estoy Listo!" }}
+              {{ isReady ? "No estic llest" : "Estic llest!" }}
             </v-btn>
           </v-card-actions>
 
@@ -181,7 +181,7 @@
             size="small"
           >
             <v-icon left>mdi-arrow-left</v-icon>
-            Salir al Lobby
+            Tornar al Lobby
           </v-btn>
         </v-card>
 

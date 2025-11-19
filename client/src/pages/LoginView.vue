@@ -190,7 +190,7 @@ function handleSubmit() {
               {{
                 isRegistering
                   ? "Ja tens compte? Fes Login"
-                  : "No tens compte? Registra’t"
+                  : "No tens compte? Registra't"
               }}
             </v-btn>
           </v-card-actions>

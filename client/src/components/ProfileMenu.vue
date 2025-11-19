@@ -21,10 +21,10 @@
       </template>
       <v-list>
         <v-list-item :to="{ name: 'profile' }">
-          <v-list-item-title>Mi Perfil</v-list-item-title>
+          <v-list-item-title>El Meu Perfil</v-list-item-title>
         </v-list-item>
         <v-list-item @click="logout">
-          <v-list-item-title>Cerrar Sesión</v-list-item-title>
+          <v-list-item-title>Tancar Sessió</v-list-item-title>
         </v-list-item>
       </v-list>
     </v-menu>
