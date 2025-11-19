@@ -1,6 +1,7 @@
 <script setup>
 import { ref, onMounted, onBeforeUnmount, computed, watch } from "vue";
 import Chat from "@/components/Chat.vue";
+import Countdown from "@/components/Countdown.vue";
 import { useWebSocketStore } from "@/stores/websocket";
 import { PoseDetectionService } from "@/services/PoseDetectionService";
 import { exerciseAnalyzers } from "@/logic/exerciseAnalyzers";
@@ -19,10 +20,12 @@ const props = defineProps({
 // Game state
 const isCameraReady = ref(false);
 const areAllPlayersReady = ref(false);
-const preparationTime = ref(10);
+const preparationTime = ref(3);
 const gameTime = ref(60);
 const isGameRunning = ref(false);
 const isGameFinished = ref(false);
+const showCountdown = ref(false);
+const countdown = ref(3);
 
 // --- CAMBIO 1: Leaderboard como ref local para actualización inmediata ---
 const leaderboard = ref([]);
@@ -98,12 +101,13 @@ const handlePoseEstimate = (keypoints) => {
 
 // --- Timer Functions ---
 function startPreparationTimer() {
-  feedbackMsg.value = `¡Prepárate! La partida empieza en ${preparationTime.value}s`;
+  showCountdown.value = true;
+  countdown.value = 3;
   let interval = setInterval(() => {
-    preparationTime.value--;
-    feedbackMsg.value = `¡Prepárate! La partida empieza en ${preparationTime.value}s`;
-    if (preparationTime.value <= 0) {
+    countdown.value--;
+    if (countdown.value === 0) {
       clearInterval(interval);
+      showCountdown.value = false;
       feedbackMsg.value = "¡YA!";
     }
   }, 1000);
@@ -197,6 +201,7 @@ watch(
 
 <template>
   <div class="page-container">
+    <Countdown v-if="showCountdown" :countdown="countdown" />
     <div v-if="!areAllPlayersReady" class="overlay">
       <div class="overlay-content">
         <h2 class="overlay-title">Esperando al resto de jugadores...</h2>
